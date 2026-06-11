@@ -14,10 +14,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Zona horaria local
+# Zona horaria para el registro exacto de transacciones
 ZONA_HORARIA = pytz.timezone('America/Santiago')
 
-# Base de datos local de partidos (Fase de Grupos)
+# Base de datos local de partidos
 PARTIDOS_DATA = [
     {"id": "1", "fase": "Grupo A", "local": "México", "visita": "Polonia", "bandera_L": "🇲🇽", "bandera_V": "🇵🇱", "sede": "Estadio Azteca, CDMX", "fecha": "11 Jun"},
     {"id": "2", "fase": "Grupo B", "local": "Canadá", "visita": "Marruecos", "bandera_L": "🇨🇦", "bandera_V": "🇲🇦", "sede": "BMO Field, Toronto", "fecha": "12 Jun"},
@@ -32,7 +32,7 @@ OPCIONES_PARTIDOS = [
     for p in PARTIDOS_DATA
 ]
 
-# Estructura de columnas
+# Estructura de columnas para GSheets
 COLS_PRONOSTICOS = ["Timestamp", "Usuario", "Partido", "Goles_Local", "Goles_Visita"]
 COLS_RESULTADOS = ["Timestamp", "Partido", "Goles_Local", "Goles_Visita"]
 
@@ -40,11 +40,10 @@ COLS_RESULTADOS = ["Timestamp", "Partido", "Goles_Local", "Goles_Visita"]
 # 2. CAPA DE DATOS (CONEXIÓN ROBUSTA)
 # ==========================================
 def obtener_conexion():
-    """Retorna el objeto de conexión de GSheets."""
     return st.connection("gsheets", type=GSheetsConnection)
 
 def cargar_datos(sheet_name, columns, ttl=60):
-    """Carga datos con manejo de caché y tolerancia a fallos."""
+    """Carga datos con manejo de caché y tolerancia a fallos de red."""
     conn = obtener_conexion()
     try:
         df = conn.read(worksheet=sheet_name, ttl=ttl)
@@ -52,37 +51,33 @@ def cargar_datos(sheet_name, columns, ttl=60):
             return pd.DataFrame(columns=columns)
         return df.dropna(how="all")
     except Exception as e:
-        st.error(f"⚠️ Error de conexión al cargar {sheet_name}. Revisa tu internet o los permisos de la planilla.")
+        st.error(f"⚠️ Error de conexión al cargar {sheet_name}. Revisa los permisos de la planilla.")
         return pd.DataFrame(columns=columns)
 
 def guardar_datos(sheet_name, new_row_df, subset_drop):
-    """Guarda datos de forma segura, sobreescribiendo registros previos y limpiando el caché."""
+    """Escribe en la base de datos asegurando la integridad de la información."""
     conn = obtener_conexion()
     try:
-        # Forzar lectura sin caché para no sobreescribir datos antiguos
         df_existente = conn.read(worksheet=sheet_name, ttl=0)
         if df_existente is None or df_existente.empty:
             df_existente = pd.DataFrame(columns=new_row_df.columns)
         else:
             df_existente = df_existente.dropna(how="all")
             
-        # Concatenar y aplicar drop_duplicates manteniendo el último ingreso
         df_actualizado = pd.concat([df_existente, new_row_df], ignore_index=True)
         df_actualizado = df_actualizado.drop_duplicates(subset=subset_drop, keep='last')
         
-        # Actualizar GSheets y limpiar caché de Streamlit
         conn.update(worksheet=sheet_name, data=df_actualizado)
         st.cache_data.clear()
         return True
     except Exception as e:
-        st.error(f"⚠️ Error crítico al guardar los datos: {str(e)}")
+        st.error(f"⚠️ Error al guardar los datos: {str(e)}")
         return False
 
 # ==========================================
 # 3. MOTOR LÓGICO DE GESTIÓN Y RANKING
 # ==========================================
 def calcular_ranking(df_p, df_r):
-    """Calcula el puntaje exacto y de tendencia, devolviendo un DataFrame ordenado."""
     if df_p.empty or df_r.empty:
         return pd.DataFrame(columns=["Usuario", "Puntos", "Aciertos Exactos", "Tendencias", "Total Pronósticos"])
 
@@ -95,7 +90,6 @@ def calcular_ranking(df_p, df_r):
             gl_p, gv_p = int(row['Goles_Local_P']), int(row['Goles_Visita_P'])
             gl_r, gv_r = int(row['Goles_Local_R']), int(row['Goles_Visita_R'])
             
-            # Lógica de asignación
             if gl_p == gl_r and gv_p == gv_r:
                 puntos.append(3); exactos.append(1); tendencias.append(0)
             elif (gl_p > gv_p and gl_r > gv_r) or (gl_p < gv_p and gl_r < gv_r) or (gl_p == gv_p and gl_r == gv_r):
@@ -109,7 +103,6 @@ def calcular_ranking(df_p, df_r):
     df['Exactos'] = exactos
     df['Tendencias'] = tendencias
     
-    # Agrupación y KPI por usuario
     ranking = df.groupby("Usuario").agg(
         Puntos=('Puntos', 'sum'),
         Aciertos_Exactos=('Exactos', 'sum'),
@@ -117,11 +110,9 @@ def calcular_ranking(df_p, df_r):
         Partidos_Jugados=('Partido', 'count')
     ).reset_index()
     
-    # Ordenamiento jerárquico: Puntos > Aciertos Exactos > Partidos Jugados (menos es mejor eficiencia)
     ranking = ranking.sort_values(by=["Puntos", "Aciertos_Exactos", "Partidos_Jugados"], ascending=[False, False, True]).reset_index(drop=True)
     ranking.index += 1 
     
-    # Renombrar para presentación visual
     return ranking.rename(columns={
         "Aciertos_Exactos": "Aciertos Exactos (3pts)",
         "Tendencias": "Acierto Tendencia (1pt)",
@@ -147,11 +138,10 @@ st.sidebar.markdown("""
 * ❌ **0 Puntos:** Ningún acierto.
 * *Nota: Solo se toma el último pronóstico guardado.*
 """)
-if st.sidebar.button("🔄 Actualizar Datos"):
+if st.sidebar.button("🔄 Forzar Actualización"):
     st.cache_data.clear()
     st.rerun()
 
-# Carga de datos base en memoria
 df_pron = cargar_datos("Pronosticos", COLS_PRONOSTICOS)
 df_res = cargar_datos("Resultados", COLS_RESULTADOS)
 
@@ -176,7 +166,7 @@ if menu == "🏆 Ranking Oficial":
                 st.metric("🥉 Tercero", f"{ranking_df.iloc[2]['Usuario']}", f"{ranking_df.iloc[2]['Puntos']} pts", delta_color="off")
         
         st.markdown("### 📋 Detalle de Clasificación")
-        st.dataframe(ranking_df, use_container_width=True, hide_index=False)
+        st.dataframe(ranking_df, use_container_width=True)
     else:
         st.info("Aún no se han consolidado resultados oficiales contra los pronósticos ingresados.")
 
@@ -205,7 +195,7 @@ elif menu == "📝 Ingresar Pronóstico":
         submit = st.form_submit_button("💾 Guardar Pronóstico", type="primary")
         
         if submit:
-            usuario_limpio = usuario_input.strip().title() # Limpieza de string
+            usuario_limpio = usuario_input.strip().title()
             if not usuario_limpio:
                 st.error("⚠️ Debes ingresar un nombre de usuario válido.")
             else:
@@ -232,7 +222,6 @@ elif menu == "📊 Control de Gestión":
     st.markdown("Monitoreo de la participación y tendencias de los resultados proyectados.")
     
     if not df_pron.empty:
-        # KPIs
         total_apuestas = len(df_pron)
         total_usuarios = df_pron['Usuario'].nunique()
         df_pron['Goles_Totales'] = pd.to_numeric(df_pron['Goles_Local']) + pd.to_numeric(df_pron['Goles_Visita'])
@@ -258,7 +247,7 @@ elif menu == "📊 Control de Gestión":
         with c_tabla:
             st.markdown("### 👥 Top Participantes")
             actividad_usuarios = df_pron['Usuario'].value_counts().reset_index()
-            actividad_usuarios.columns = ['Usuario', 'Pronósticos Ingresados']
+            actividad_usuarios.columns = ['Usuario', 'Ingresos']
             st.dataframe(actividad_usuarios, hide_index=True, use_container_width=True)
             
         st.markdown("### 🔍 Registro Crudo (Últimos Movimientos)")
@@ -278,7 +267,7 @@ elif menu == "⚙️ Operaciones (Admin)":
     if not st.session_state["admin_auth"]:
         pwd = st.text_input("🔑 Clave de Operaciones:", type="password")
         if st.button("Validar Credenciales"):
-            if pwd == "Mundial2026!": # Contraseña de seguridad
+            if pwd == "Mundial2026!":
                 st.session_state["admin_auth"] = True
                 st.rerun()
             else:
