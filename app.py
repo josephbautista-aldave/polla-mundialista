@@ -10,7 +10,6 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="BANBET | BanGlobal 2026", page_icon="🏆", layout="centered")
 ZONA_HORARIA = pytz.timezone('America/Santiago')
 
-# Estilos CSS personalizados para el título
 st.markdown("""
     <style>
     .main-title {
@@ -33,7 +32,6 @@ st.markdown("""
     <p class="sub-title">Plataforma Oficial de Pronósticos BanGlobal</p>
 """, unsafe_allow_html=True)
 
-# Panel Lateral Interactivo
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/2026_FIFA_World_Cup_logo.svg/512px-2026_FIFA_World_Cup_logo.svg.png", width=150)
     st.markdown("### 🏟️ El Mundial Más Grande")
@@ -46,10 +44,9 @@ with st.sidebar:
     """)
 
 # ==========================================
-# 2. BASE DE DATOS LOCAL (USUARIOS Y PARTIDOS)
+# 2. BASE DE DATOS LOCAL
 # ==========================================
 USUARIOS = [
-    "Selecciona tu nombre...",
     "Alisson", "Bernarda", "Carlos", "Claudio", "Costanzo", "Cristian",
     "Daniela", "David", "Emanuel", "Isidora", "Joseph", "Marco",
     "Miguel", "Milcka", "Nayadeth", "Nicol", "Patricio", "Rodrigo"
@@ -82,12 +79,11 @@ PARTIDOS = [
     {"id": "P24", "local": "Uzbekistán 🇺🇿", "visita": "Colombia 🇨🇴", "fecha_hora": "2026-06-17 22:00"}
 ]
 
-# ¡NUEVO ESQUEMA DE DATOS AMPLIADO!
 COLS_APUESTAS = ["Timestamp", "Usuario", "ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Goles_Local", "Goles_Visita"]
 COLS_RESULTADOS = ["ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Goles_Local", "Goles_Visita"]
 
 # ==========================================
-# 3. CAPA DE DATOS AUTO-REPARABLE
+# 3. CAPA DE DATOS
 # ==========================================
 def obtener_datos(hoja, columnas):
     try:
@@ -135,12 +131,12 @@ def calcular_puntos(g_loc_apuesta, g_vis_apuesta, g_loc_real, g_vis_real):
 df_apuestas = obtener_datos("Apuestas", COLS_APUESTAS)
 df_resultados = obtener_datos("Resultados", COLS_RESULTADOS)
 
-# Selector de Perfil Centralizado
-st.markdown("### 👤 Selecciona tu perfil para ingresar:")
-usuario_actual = st.selectbox("Nombre del participante:", USUARIOS, label_visibility="collapsed")
+st.markdown("### 👤 Selecciona tu perfil:")
+# Cambiado a "radio" con horizontal=True para evitar el teclado en móviles
+usuario_actual = st.radio("Participantes", USUARIOS, index=None, horizontal=True, label_visibility="collapsed")
 
-if usuario_actual == "Selecciona tu nombre...":
-    st.info("👈 Por favor, selecciona tu nombre del listado para acceder a tus cartillas.")
+if usuario_actual is None:
+    st.info("👈 Toca tu nombre en la lista de arriba para acceder a tus cartillas.")
 else:
     st.success(f"✅ Conectado exitosamente como: **{usuario_actual}**")
     
@@ -167,7 +163,8 @@ else:
             
         for p in partidos_futuros:
             with st.container():
-                st.markdown(f"### ⚔️ {p['local']} vs {p['visita']}")
+                # Eliminadas las espadas ⚔️
+                st.markdown(f"### {p['local']} vs {p['visita']}")
                 fecha_obj = datetime.strptime(p["fecha_hora"], "%Y-%m-%d %H:%M")
                 st.caption(f"⏱️ El partido comienza el **{fecha_obj.strftime('%d/%m/%Y')}** a las **{fecha_obj.strftime('%H:%M')} hrs**.")
                 
@@ -182,10 +179,9 @@ else:
                         except Exception:
                             pass
                 
-                with st.form(key=f"form_{p['id']}_{usuario_actual}"): # EL SECRETO PARA QUE NO SE PEGUEN LOS VALORES ESTÁ EN ESTA LLAVE
+                with st.form(key=f"form_{p['id']}_{usuario_actual}"):
                     col1, col2 = st.columns(2)
                     with col1:
-                        # La llave (key) es dinámica por partido y por usuario
                         gl = st.number_input(f"Marcador {p['local'].split(' ')[0]}", min_value=0, max_value=20, step=1, value=g_loc_previo, key=f"loc_{p['id']}_{usuario_actual}")
                     with col2:
                         gv = st.number_input(f"Marcador {p['visita'].split(' ')[0]}", min_value=0, max_value=20, step=1, value=g_vis_previo, key=f"vis_{p['id']}_{usuario_actual}")
@@ -194,7 +190,6 @@ else:
                         with st.spinner("Sincronizando con BANBET..."):
                             ahora_str = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
                             
-                            # AHORA INYECTAMOS TODOS LOS DATOS PARA FUTUROS GRÁFICOS
                             nueva_apuesta = pd.DataFrame([{
                                 "Timestamp": ahora_str, 
                                 "Usuario": usuario_actual, 
@@ -223,6 +218,7 @@ else:
             st.info("Aún no se ha jugado ningún partido.")
             
         for p in partidos_pasados:
+            # Eliminadas las espadas ⚔️
             st.markdown(f"#### 🔒 {p['local']} vs {p['visita']}")
             
             texto_apuesta = "Ausente (Asignado 0-0)"
