@@ -15,24 +15,24 @@ ZONA_HORARIA = pytz.timezone('America/Santiago')
 # ==========================================
 USUARIOS = [
     "Selecciona tu nombre...",
-    "Marco",
-    "David",
-    "Daniela",
-    "Claudio",
-    "Nicol",
-    "Carlos",
-    "Emanuel",
-    "Nayadeth",
-    "Patricio",
-    "Bernarda",
-    "Rodrigo",
-    "Miguel",
     "Alisson",
-    "Joseph",
-    "Cristian",
+    "Bernarda",
+    "Carlos",
+    "Claudio",
     "Costanzo",
+    "Cristian",
+    "Daniela",
+    "David",
+    "Emanuel",
     "Isidora",
-    "Milcka"
+    "Joseph",
+    "Marco",
+    "Miguel",
+    "Milcka",
+    "Nayadeth",
+    "Nicol",
+    "Patricio",
+    "Rodrigo"
 ]
 
 PARTIDOS = [
