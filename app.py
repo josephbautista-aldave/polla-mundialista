@@ -10,7 +10,7 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="BANBET | Mundial 2026", page_icon="🏆", layout="centered")
 ZONA_HORARIA = pytz.timezone('America/Santiago')
 
-# Nuevo banner visual más mundialero y colorido
+# Banner visual sin la palabra "Quiniela", más mundialero
 st.markdown("""
     <style>
     .banner-mundial {
@@ -37,20 +37,37 @@ st.markdown("""
     </style>
     <div class="banner-mundial">
         <h1 class="titulo-principal">🏆 BANBET 2026 ⚽</h1>
-        <p class="subtitulo">Quiniela Oficial BanGlobal</p>
+        <p class="subtitulo">Torneo Oficial de Pronósticos BanGlobal</p>
     </div>
 """, unsafe_allow_html=True)
 
-# Barra lateral limpia, reservada para futuras gráficas
+# Barra lateral rediseñada: Tutorial y Futuro
 with st.sidebar:
-    st.markdown("### 📊 Panel de Análisis")
-    st.info("Próximamente: Gráficas de rendimiento, estadísticas de la oficina y tabla de líderes.")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/2026_FIFA_World_Cup_logo.svg/512px-2026_FIFA_World_Cup_logo.svg.png", width=150)
+    
+    st.markdown("### 📖 ¿Cómo Jugar?")
+    st.info("""
+    1️⃣ **Inicia Sesión:** Toca tu nombre en la pantalla principal.
+    2️⃣ **Ingresa tu Pronóstico:** Ajusta los goles y dale a *Guardar*.
+    3️⃣ **El Reloj no Perdona:** En cuanto el partido empieza en la vida real, las opciones desaparecen de la app.
+    """)
+    
+    st.markdown("### 🥇 Sistema de Puntuación")
+    st.success("""
+    * 🎯 **Pleno (5 pts):** Adivinas el resultado exacto.
+    * 📈 **Tendencia (3 pts):** Adivinas al ganador o el empate, pero no los goles exactos.
+    * ❌ **Fallo (0 pts):** Gana el equipo contrario.
+    """)
+    
+    st.markdown("---")
+    st.markdown("### 📊 Próximamente...")
+    st.warning("Estamos preparando el **Panel de Análisis** donde podrás ver gráficas de rendimiento, estadísticas de la oficina y la Tabla de Posiciones Global. ¡Guarda tus apuestas para empezar a sumar!")
 
 # ==========================================
-# 2. BASE DE DATOS LOCAL (USUARIOS Y PARTIDOS)
+# 2. BASE DE DATOS LOCAL
 # ==========================================
+# Quitamos "Selecciona tu nombre..." para dejar solo botones reales
 USUARIOS = [
-    "Selecciona tu nombre...",
     "Alisson", "Bernarda", "Carlos", "Claudio", "Costanzo", "Cristian",
     "Daniela", "David", "Emanuel", "Isidora", "Joseph", "Marco",
     "Miguel", "Milcka", "Nayadeth", "Nicol", "Patricio", "Rodrigo"
@@ -93,10 +110,8 @@ def obtener_datos(hoja, columnas):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(worksheet=hoja, ttl=0)
-        
         if df is None or df.empty or str(df.columns[0]).startswith("Unnamed"):
             return pd.DataFrame(columns=columnas)
-            
         for col in columnas:
             if col not in df.columns:
                 df[col] = None
@@ -115,43 +130,49 @@ def guardar_datos_seguro(hoja, df_nuevo):
         return False
 
 # ==========================================
-# 4. LÓGICA DE NEGOCIO
+# 4. NUEVA LÓGICA DE NEGOCIO (SISTEMA 5-3-0)
 # ==========================================
 def calcular_puntos(g_loc_apuesta, g_vis_apuesta, g_loc_real, g_vis_real):
     try:
         gl_a, gv_a = int(g_loc_apuesta), int(g_vis_apuesta)
         gl_r, gv_r = int(g_loc_real), int(g_vis_real)
+        
+        # 1. Pleno Exacto (5 pts)
         if gl_a == gl_r and gv_a == gv_r:
-            return 3
+            return 5
+        # 2. Tendencia (3 pts): Acertó que ganaba el local, la visita, o que era empate
         elif (gl_a > gv_a and gl_r > gv_r) or (gl_a < gv_a and gl_r < gv_r) or (gl_a == gv_a and gl_r == gv_r):
-            return 1
+            return 3
+        # 3. Fallo total
         return 0
     except (ValueError, TypeError):
         return 0
 
 # ==========================================
-# 5. GESTOR DE SESIÓN (PSEUDO-LOGIN)
+# 5. GESTOR DE SESIÓN 100% TÁCTIL
 # ==========================================
 if "usuario_activo" not in st.session_state:
     st.session_state.usuario_activo = None
 
-# Vista de "Login"
 if st.session_state.usuario_activo is None:
-    st.markdown("### 🔐 Ingresa a tu cuenta")
-    seleccion = st.selectbox("Busca tu nombre en la lista:", USUARIOS)
+    st.markdown("### 🔐 Identificación (Toca tu nombre)")
+    
+    # st.radio es 100% táctil, no invoca teclado en móviles
+    seleccion = st.radio("Lista de Jugadores:", USUARIOS, index=None, label_visibility="collapsed")
+    
+    st.markdown("<br>", unsafe_allow_html=True) # Espacio extra visual
     
     if st.button("Entrar a BANBET", type="primary", use_container_width=True):
-        if seleccion != "Selecciona tu nombre...":
+        if seleccion is not None:
             st.session_state.usuario_activo = seleccion
-            st.rerun() # Recarga la app y entra al sistema
+            st.rerun() 
         else:
-            st.error("⚠️ Debes seleccionar un nombre válido para continuar.")
-    st.stop() # Detiene la ejecución para que no vean nada más hasta "loguearse"
+            st.error("⚠️ Toca tu nombre en la lista antes de entrar.")
+    st.stop() 
 
 # ==========================================
 # 6. MOTOR DE INTERFAZ (VISTA CONECTADA)
 # ==========================================
-# Si el código llega aquí, es porque el usuario ya ingresó correctamente
 usuario_actual = st.session_state.usuario_activo
 
 col1, col2 = st.columns([3, 1])
@@ -266,5 +287,5 @@ with tab_pasados:
             c1, c2, c3 = st.columns(3)
             c1.metric("Tu Jugada", texto_apuesta)
             c2.metric("Marcador Final", f"{g_loc_r} - {g_vis_r}")
-            c3.metric("Puntos", f"+{puntos}")
+            c3.metric("Puntos Obtenidos", f"+{puntos}")
         st.write("---")
