@@ -10,7 +10,6 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="BANBET Mundial 2026", page_icon="🌍", layout="centered")
 ZONA_HORARIA = pytz.timezone('America/Santiago')
 
-# Banner visual a prueba de temas (Claro/Oscuro) con colores FIFA
 st.markdown("""
     <style>
     .banner-mundial {
@@ -46,7 +45,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Barra lateral rediseñada con más color y emojis
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; font-size: 4rem; margin-bottom: 5px;">
@@ -56,7 +54,7 @@ with st.sidebar:
     
     st.markdown("### 📋 Reglas del Juego")
     st.info("""
-    📲 **1. Selecciona tu perfil:** Usa tu avatar.
+    📲 **1. Selecciona tu perfil:** Usa tu avatar de la matriz.
     ⏱️ **2. Apuesta a tiempo:** El sistema bloquea las cartillas al pitazo inicial de cada partido.
     """)
     
@@ -69,12 +67,11 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### 📊 Próximamente")
-    st.warning("📈 **Dashboard de Líderes:** Las gráficas de rendimiento y tabla de posiciones se activarán una vez iniciado el torneo. ¡Suma puntos!")
+    st.warning("📈 **Dashboard de Líderes:** Las gráficas de rendimiento y tabla de posiciones se activarán una vez avanzado el torneo. ¡Asegura tus puntos!")
 
 # ==========================================
-# 2. BASE DE DATOS LOCAL (CON AVATARES)
+# 2. BASE DE DATOS LOCAL Y AVATARES
 # ==========================================
-# Diccionario con avatares únicos para cada participante
 PERFILES = {
     "Alisson": "👩🏽", "Bernarda": "👩🏻", "Carlos": "👨🏻", "Claudio": "👨🏼",
     "Costanzo": "👨🏽", "Cristian": "👨🏻‍🦱", "Daniela": "👩🏼‍💼", "David": "👨🏻‍💻",
@@ -83,7 +80,6 @@ PERFILES = {
     "Patricio": "👨🏼‍💻", "Rodrigo": "👨🏻‍💼"
 }
 
-# Lista combinada para mostrar en la interfaz (Ej: "👨🏻‍🚀 Joseph")
 OPCIONES_USUARIOS = [f"{icono} {nombre}" for nombre, icono in PERFILES.items()]
 
 PARTIDOS = [
@@ -117,7 +113,7 @@ COLS_APUESTAS = ["Timestamp", "Usuario", "ID_Partido", "Equipo_Local", "Equipo_V
 COLS_RESULTADOS = ["ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Goles_Local", "Goles_Visita"]
 
 # ==========================================
-# 3. CAPA DE DATOS AUTO-REPARABLE
+# 3. CAPA DE EXTRACCIÓN Y LIMPIEZA DE DATOS
 # ==========================================
 def obtener_datos(hoja, columnas):
     try:
@@ -144,6 +140,18 @@ def guardar_datos_seguro(hoja, df_nuevo):
         st.error(f"❌ Error de escritura en GSheets ({hoja}): {e}")
         return False
 
+def parse_goles(valor):
+    """
+    Función blindada: Convierte cualquier dato de Excel a un número entero seguro.
+    Si recibe celdas vacías, letras o errores, devuelve 0 sin romper el código.
+    """
+    try:
+        if pd.isna(valor) or str(valor).strip() == "":
+            return 0
+        return int(float(str(valor).strip()))
+    except (ValueError, TypeError):
+        return 0
+
 # ==========================================
 # 4. LÓGICA DE PUNTOS (5-3-0)
 # ==========================================
@@ -151,6 +159,7 @@ def calcular_puntos(g_loc_apuesta, g_vis_apuesta, g_loc_real, g_vis_real):
     try:
         gl_a, gv_a = int(g_loc_apuesta), int(g_vis_apuesta)
         gl_r, gv_r = int(g_loc_real), int(g_vis_real)
+        
         if gl_a == gl_r and gv_a == gv_r:
             return 5
         elif (gl_a > gv_a and gl_r > gv_r) or (gl_a < gv_a and gl_r < gv_r) or (gl_a == gv_a and gl_r == gv_r):
@@ -166,12 +175,10 @@ if "usuario_activo" not in st.session_state:
     st.session_state.usuario_activo = None
 
 if st.session_state.usuario_activo is None:
-    # Usamos st.form para evitar que la página recargue al seleccionar el radio
     with st.form("form_login"):
-        st.markdown("### 🔐 Selecciona tu perfil")
-        st.caption("Toca tu nombre y luego presiona 'Ingresar a BANBET'")
+        st.markdown("### 🔐 Selecciona tu credencial")
+        st.caption("Toca tu avatar y luego presiona el botón azul para ingresar de forma segura.")
         
-        # El horizontal=True lo hace compacto y usa todo el ancho sin dejar espacio vacío
         seleccion_cruda = st.radio("Perfiles Oficiales:", OPCIONES_USUARIOS, index=None, horizontal=True, label_visibility="collapsed")
         
         st.markdown("<br>", unsafe_allow_html=True)
@@ -179,13 +186,12 @@ if st.session_state.usuario_activo is None:
         
         if btn_ingresar:
             if seleccion_cruda is not None:
-                # Extraemos el nombre puro quitando el emoji para guardar en la base de datos limpiamente
                 nombre_puro = seleccion_cruda.split(" ", 1)[1]
                 st.session_state.usuario_activo = nombre_puro
                 st.rerun() 
             else:
-                st.error("⚠️ Debes seleccionar un avatar antes de ingresar.")
-    st.stop() # Bloquea la app hasta que entre
+                st.error("⚠️ Operación rechazada. Debes seleccionar tu perfil antes de continuar.")
+    st.stop() 
 
 # ==========================================
 # 6. MOTOR DE INTERFAZ (VISTA CONECTADA)
@@ -216,14 +222,14 @@ for p in PARTIDOS:
     else:
         partidos_pasados.append(p)
 
-tab_futuros, tab_pasados = st.tabs(["🔮 CARTILLAS ABIERTAS", "📜 RESULTADOS / HISTORIAL"])
+tab_futuros, tab_pasados = st.tabs(["🔮 CARTILLAS ABIERTAS", "📜 RESULTADOS Y PUNTOS"])
 
 # ------------------------------------------
 # PESTAÑA: APUESTAS ABIERTAS
 # ------------------------------------------
 with tab_futuros:
     if not partidos_futuros:
-        st.success("🎉 ¡Has completado todos tus pronósticos! Espera los resultados de los partidos.")
+        st.success("🎉 ¡Has completado todos tus pronósticos! Espera a que rueden los balones.")
         
     for p in partidos_futuros:
         with st.container():
@@ -233,14 +239,13 @@ with tab_futuros:
             
             g_loc_previo, g_vis_previo = 0, 0
             if not mis_apuestas.empty:
+                # Usamos .iloc[-1] para asegurarnos de tomar siempre la última actualización que hizo el usuario
                 apuesta_previa = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
                 if not apuesta_previa.empty:
-                    try:
-                        g_loc_previo = int(apuesta_previa["Goles_Local"].iloc[0])
-                        g_vis_previo = int(apuesta_previa["Goles_Visita"].iloc[0])
-                        st.info(f"✅ Tu jugada guardada: **{g_loc_previo} - {g_vis_previo}**")
-                    except Exception:
-                        pass
+                    # Limpieza blindada usando nuestra nueva función
+                    g_loc_previo = parse_goles(apuesta_previa["Goles_Local"].iloc[-1])
+                    g_vis_previo = parse_goles(apuesta_previa["Goles_Visita"].iloc[-1])
+                    st.info(f"✅ Tu jugada guardada: **{g_loc_previo} - {g_vis_previo}**")
             
             with st.form(key=f"form_{p['id']}_{usuario_actual}"):
                 c1, c2 = st.columns(2)
@@ -250,7 +255,7 @@ with tab_futuros:
                     gv = st.number_input(f"Marcador {p['visita'].split(' ')[0]}", min_value=0, max_value=20, step=1, value=g_vis_previo, key=f"vis_{p['id']}_{usuario_actual}")
                 
                 if st.form_submit_button("💾 Guardar y Asegurar Jugada", type="primary"):
-                    with st.spinner("Enviando al sistema BANBET..."):
+                    with st.spinner("Enviando al servidor central..."):
                         ahora_str = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
                         
                         nueva_apuesta = pd.DataFrame([{
@@ -274,11 +279,11 @@ with tab_futuros:
             st.write("---")
 
 # ------------------------------------------
-# PESTAÑA: HISTORIAL
+# PESTAÑA: HISTORIAL Y PUNTOS
 # ------------------------------------------
 with tab_pasados:
     if not partidos_pasados:
-        st.info("Aún no se ha jugado ningún partido.")
+        st.info("Aún no se ha cerrado ninguna cartilla.")
         
     for p in partidos_pasados:
         st.markdown(f"#### 🔒 {p['local']} vs {p['visita']}")
@@ -289,21 +294,24 @@ with tab_pasados:
         if not mis_apuestas.empty:
             apuesta = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
             if not apuesta.empty:
-                g_loc_a = int(apuesta["Goles_Local"].iloc[0])
-                g_vis_a = int(apuesta["Goles_Visita"].iloc[0])
+                # Extracción blindada
+                g_loc_a = parse_goles(apuesta["Goles_Local"].iloc[-1])
+                g_vis_a = parse_goles(apuesta["Goles_Visita"].iloc[-1])
                 texto_apuesta = f"{g_loc_a} - {g_vis_a}"
 
         resultado = df_resultados[df_resultados["ID_Partido"] == p["id"]] if not df_resultados.empty else pd.DataFrame()
         
-        if resultado.empty:
+        # Validación extra: Verificamos que realmente haya datos de goles y no celdas vacías o con "X" en Resultados
+        if resultado.empty or pd.isna(resultado["Goles_Local"].iloc[-1]) or str(resultado["Goles_Local"].iloc[-1]).strip() == "":
             st.warning(f"⏳ Tu jugada: **{texto_apuesta}**. Pendiente de validación oficial.")
         else:
-            g_loc_r = int(resultado["Goles_Local"].iloc[0])
-            g_vis_r = int(resultado["Goles_Visita"].iloc[0])
+            # Extracción blindada del resultado oficial
+            g_loc_r = parse_goles(resultado["Goles_Local"].iloc[-1])
+            g_vis_r = parse_goles(resultado["Goles_Visita"].iloc[-1])
             puntos = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
             
             c1, c2, c3 = st.columns(3)
             c1.metric("Tu Jugada", texto_apuesta)
             c2.metric("Marcador Final", f"{g_loc_r} - {g_vis_r}")
-            c3.metric(f"Puntos", f"+{puntos}")
+            c3.metric("Rendimiento", f"+{puntos} Pts")
         st.write("---")
