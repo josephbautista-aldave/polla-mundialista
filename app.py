@@ -19,122 +19,77 @@ USUARIOS = [
     "Daniela", 
     "Yeison", 
     "Pato", 
-    "Milcka", 
-    "Jugador Invitado 1", 
-    "Jugador Invitado 2"
+    "Milcka"
 ]
 
-# Ajusté las fechas para que hoy puedas ver la diferencia entre pasados y futuros
 PARTIDOS = [
-    {
-        "id": "P1", 
-        "local": "México 🇲🇽", 
-        "visita": "🇵🇱 Polonia", 
-        "fecha_hora": "2026-06-11 10:00" # Ya se jugó
-    },
-    {
-        "id": "P2", 
-        "local": "Canadá 🇨🇦", 
-        "visita": "🇲🇦 Marruecos", 
-        "fecha_hora": "2026-06-12 10:00" # Ya se jugó hoy temprano
-    },
-    {
-        "id": "P3", 
-        "local": "USA 🇺🇸", 
-        "visita": "🏴󠁧󠁢󠁷󠁬󠁳󠁿 Gales", 
-        "fecha_hora": "2026-06-12 20:00" # Se juega hoy más tarde (Abierto)
-    },
-    {
-        "id": "P4", 
-        "local": "Argentina 🇦🇷", 
-        "visita": "🇫🇷 Francia", 
-        "fecha_hora": "2026-06-15 16:00" # Se juega en el futuro (Abierto)
-    }
+    {"id": "P1", "local": "México 🇲🇽", "visita": "🇵🇱 Polonia", "fecha_hora": "2026-06-11 10:00"},
+    {"id": "P2", "local": "Canadá 🇨🇦", "visita": "🇲🇦 Marruecos", "fecha_hora": "2026-06-12 10:00"},
+    {"id": "P3", "local": "USA 🇺🇸", "visita": "🏴󠁧󠁢󠁷󠁬󠁳󠁿 Gales", "fecha_hora": "2026-06-12 20:00"},
+    {"id": "P4", "local": "Argentina 🇦🇷", "visita": "🇫🇷 Francia", "fecha_hora": "2026-06-15 16:00"}
 ]
+
+COLS_APUESTAS = ["Timestamp", "Usuario", "ID_Partido", "Goles_Local", "Goles_Visita"]
+COLS_RESULTADOS = ["ID_Partido", "Goles_Local", "Goles_Visita"]
 
 # ==========================================
-# 3. CONEXIÓN A GOOGLE SHEETS (ANTI-KEYERROR)
+# 3. CAPA DE DATOS AUTO-REPARABLE
 # ==========================================
 def obtener_datos(hoja, columnas):
-    """Garantiza que el DataFrame siempre tenga las columnas correctas, aunque esté vacío."""
+    """Intenta leer la hoja. Si da error 400 o está vacía, inicializa una tabla limpia con sus columnas."""
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(worksheet=hoja, ttl=0)
         
-        # Si la hoja está totalmente en blanco o no existe
-        if df is None or df.empty:
+        if df is None or df.empty or df.columns[0].startswith("Unnamed"):
+            # Si la hoja está rota o vacía, le creamos la estructura base en memoria
             return pd.DataFrame(columns=columnas)
             
-        # Forzar que las columnas existan por si la hoja no tiene encabezados
+        # Verificar que todas las columnas requeridas existan
         for col in columnas:
             if col not in df.columns:
                 df[col] = None
-                
         return df.dropna(how="all")
-    except Exception as e:
-        st.error(f"⚠️ Error de lectura en la hoja {hoja}.")
+    except Exception:
+        # Si da Error 400 porque la pestaña está vacía, devolvemos el cascarón limpio
         return pd.DataFrame(columns=columnas)
 
-def guardar_apuesta(usuario, id_partido, g_local, g_visita):
+def guardar_datos_seguro(hoja, df_nuevo):
+    """Fuerza la escritura limpiando estructuras corruptas previas."""
     conn = st.connection("gsheets", type=GSheetsConnection)
-    ahora = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
-    
-    nueva_fila = pd.DataFrame([{
-        "Timestamp": ahora,
-        "Usuario": usuario,
-        "ID_Partido": id_partido,
-        "Goles_Local": g_local,
-        "Goles_Visita": g_visita
-    }])
-    
     try:
-        df_existente = conn.read(worksheet="Apuestas", ttl=0)
-        
-        if df_existente is None or df_existente.empty:
-            df_existente = pd.DataFrame(columns=["Timestamp", "Usuario", "ID_Partido", "Goles_Local", "Goles_Visita"])
-        else:
-            df_existente = df_existente.dropna(how="all")
-            
-        df_actualizado = pd.concat([df_existente, nueva_fila], ignore_index=True)
-        df_actualizado = df_actualizado.drop_duplicates(subset=["Usuario", "ID_Partido"], keep='last')
-        
-        conn.update(worksheet="Apuestas", data=df_actualizado)
+        conn.update(worksheet=hoja, data=df_nuevo)
         st.cache_data.clear()
         return True
     except Exception as e:
-        st.error(f"Error al guardar: {e}")
+        st.error(f"❌ Error de escritura en GSheets ({hoja}): {e}")
         return False
 
 # ==========================================
-# 4. LÓGICA DE PUNTOS
+# 4. LÓGICA DE NEGOCIO
 # ==========================================
 def calcular_puntos(g_loc_apuesta, g_vis_apuesta, g_loc_real, g_vis_real):
     try:
         gl_a, gv_a = int(g_loc_apuesta), int(g_vis_apuesta)
         gl_r, gv_r = int(g_loc_real), int(g_vis_real)
-        
         if gl_a == gl_r and gv_a == gv_r:
-            return 3 # Exacto
+            return 3
         elif (gl_a > gv_a and gl_r > gv_r) or (gl_a < gv_a and gl_r < gv_r) or (gl_a == gv_a and gl_r == gv_r):
-            return 1 # Tendencia
-        return 0 # Fallo
+            return 1
+        return 0
     except (ValueError, TypeError):
         return 0
 
 # ==========================================
-# 5. INTERFAZ PRINCIPAL BANBET
+# 5. INTERFAZ DE USUARIO
 # ==========================================
 st.title("📱 BANBET")
 st.markdown("Plataforma Oficial de Pronósticos | **Las apuestas se cierran al iniciar el partido.**")
 
-# 1. Cargar bases de datos garantizando el esquema
-cols_apuestas = ["Timestamp", "Usuario", "ID_Partido", "Goles_Local", "Goles_Visita"]
-cols_resultados = ["ID_Partido", "Goles_Local", "Goles_Visita"]
+# Cargar las tablas mitigando el Error 400
+df_apuestas = obtener_datos("Apuestas", COLS_APUESTAS)
+df_resultados = obtener_datos("Resultados", COLS_RESULTADOS)
 
-df_apuestas = obtener_datos("Apuestas", cols_apuestas)
-df_resultados = obtener_datos("Resultados", cols_resultados)
-
-# 2. Selector de Usuario
 usuario_actual = st.selectbox("👤 Selecciona tu perfil:", USUARIOS)
 
 if usuario_actual == "Selecciona tu nombre...":
@@ -142,18 +97,11 @@ if usuario_actual == "Selecciona tu nombre...":
 else:
     st.success(f"Sesión iniciada como: **{usuario_actual}**")
     
-    # 3. Filtrar datos del usuario (Asegurando que el DataFrame no pierda columnas)
-    if not df_apuestas.empty:
-        mis_apuestas = df_apuestas[df_apuestas["Usuario"] == usuario_actual]
-    else:
-        mis_apuestas = pd.DataFrame(columns=cols_apuestas)
-    
+    mis_apuestas = df_apuestas[df_apuestas["Usuario"] == usuario_actual] if not df_apuestas.empty else pd.DataFrame(columns=COLS_APUESTAS)
     ahora_dt = datetime.now(ZONA_HORARIA)
     
-    # 4. Separador Automático por Tiempo
     partidos_futuros = []
     partidos_pasados = []
-    
     for p in PARTIDOS:
         fecha_partido = ZONA_HORARIA.localize(datetime.strptime(p["fecha_hora"], "%Y-%m-%d %H:%M"))
         if ahora_dt < fecha_partido:
@@ -163,30 +111,29 @@ else:
 
     tab_futuros, tab_pasados = st.tabs(["🔮 Pronósticos Abiertos", "📜 Mi Historial (Cerrados)"])
     
-    # ==========================================
-    # PESTAÑA 1: FUTUROS (APUESTAS ABIERTAS)
-    # ==========================================
+    # ------------------------------------------
+    # PESTAÑA: APUESTAS ABIERTAS
+    # ------------------------------------------
     with tab_futuros:
         if not partidos_futuros:
             st.success("No hay partidos próximos disponibles por ahora.")
             
         for p in partidos_futuros:
             st.markdown(f"### {p['local']} vs {p['visita']}")
-            
             fecha_obj = datetime.strptime(p["fecha_hora"], "%Y-%m-%d %H:%M")
-            st.caption(f"🗓️ Cierre de apuestas: {fecha_obj.strftime('%d/%m/%Y a las %H:%M')} hrs")
+            st.caption(f"🗓️ Cierre: {fecha_obj.strftime('%d/%m/%Y a las %H:%M')} hrs")
             
-            # Recuperar apuesta previa si existe
-            apuesta_previa = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
-            
-            try:
-                g_loc_previo = int(apuesta_previa["Goles_Local"].iloc[0]) if not apuesta_previa.empty else 0
-                g_vis_previo = int(apuesta_previa["Goles_Visita"].iloc[0]) if not apuesta_previa.empty else 0
-            except (ValueError, TypeError):
-                g_loc_previo, g_vis_previo = 0, 0
-            
-            if not apuesta_previa.empty:
-                st.info("✅ Ya ingresaste este pronóstico. Edítalo si cambiaste de opinión.")
+            # Buscar apuestas previas de forma segura
+            g_loc_previo, g_vis_previo = 0, 0
+            if not mis_apuestas.empty:
+                apuesta_previa = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
+                if not apuesta_previa.empty:
+                    try:
+                        g_loc_previo = int(apuesta_previa["Goles_Local"].iloc[0])
+                        g_vis_previo = int(apuesta_previa["Goles_Visita"].iloc[0])
+                        st.info("✅ Ya ingresaste este pronóstico. Puedes modificarlo.")
+                    except Exception:
+                        pass
             
             with st.form(key=f"form_{p['id']}"):
                 col1, col2 = st.columns(2)
@@ -195,53 +142,52 @@ else:
                 with col2:
                     gv = st.number_input(f"Goles {p['visita']}", min_value=0, max_value=20, step=1, value=g_vis_previo, key=f"vis_{p['id']}")
                 
-                enviar = st.form_submit_button("💾 Guardar Apuesta", type="primary")
-                
-                if enviar:
-                    with st.spinner("Guardando en BANBET..."):
-                        if guardar_apuesta(usuario_actual, p["id"], gl, gv):
-                            st.success("¡Apuesta confirmada!")
+                if st.form_submit_button("💾 Guardar Apuesta", type="primary"):
+                    with st.spinner("Sincronizando con la base de datos..."):
+                        ahora_str = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
+                        nueva_apuesta = pd.DataFrame([{"Timestamp": ahora_str, "Usuario": usuario_actual, "ID_Partido": p["id"], "Goles_Local": gl, "Goles_Visita": gv}])
+                        
+                        # Combinar de forma segura reconstruyendo el DataFrame si es necesario
+                        df_base = df_apuestas if not df_apuestas.empty else pd.DataFrame(columns=COLS_APUESTAS)
+                        df_final = pd.concat([df_base, nueva_apuesta], ignore_index=True)
+                        df_final = df_final.drop_duplicates(subset=["Usuario", "ID_Partido"], keep='last')
+                        
+                        if guardar_datos_seguro("Apuestas", df_final):
+                            st.success("¡Apuesta guardada exitosamente!")
                             st.rerun()
             st.divider()
 
-    # ==========================================
-    # PESTAÑA 2: PASADOS (HISTORIAL)
-    # ==========================================
+    # ------------------------------------------
+    # PESTAÑA: HISTORIAL
+    # ------------------------------------------
     with tab_pasados:
         if not partidos_pasados:
             st.info("Aún no hay partidos finalizados en tu historial.")
             
         for p in partidos_pasados:
             st.markdown(f"### 🔒 {p['local']} vs {p['visita']}")
-            st.caption("Partido finalizado - Apuestas cerradas")
             
-            apuesta = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
             texto_apuesta = "No apostaste (Asignado 0-0)"
             g_loc_a, g_vis_a = 0, 0
             
-            if not apuesta.empty:
-                try:
+            if not mis_apuestas.empty:
+                apuesta = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
+                if not apuesta.empty:
                     g_loc_a = int(apuesta["Goles_Local"].iloc[0])
                     g_vis_a = int(apuesta["Goles_Visita"].iloc[0])
                     texto_apuesta = f"{g_loc_a} - {g_vis_a}"
-                except (ValueError, TypeError):
-                    texto_apuesta = "Error en formato"
 
             resultado = df_resultados[df_resultados["ID_Partido"] == p["id"]] if not df_resultados.empty else pd.DataFrame()
             
             if resultado.empty:
-                st.warning(f"⏳ Tu apuesta fue: **{texto_apuesta}**. Esperando resultado oficial del administrador.")
+                st.warning(f"⏳ Tu apuesta fue: **{texto_apuesta}**. Esperando resultado oficial.")
             else:
-                try:
-                    g_loc_r = int(resultado["Goles_Local"].iloc[0])
-                    g_vis_r = int(resultado["Goles_Visita"].iloc[0])
-                    puntos = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
-                    
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("Tu Apuesta", texto_apuesta)
-                    c2.metric("Resultado Real", f"{g_loc_r} - {g_vis_r}")
-                    c3.metric("Puntos Obtenidos", f"+{puntos} pts")
-                except (ValueError, TypeError):
-                    st.error("Error al leer el resultado oficial. Revisa que no haya letras en la hoja de Resultados.")
+                g_loc_r = int(resultado["Goles_Local"].iloc[0])
+                g_vis_r = int(resultado["Goles_Visita"].iloc[0])
+                puntos = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
                 
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Tu Apuesta", texto_apuesta)
+                c2.metric("Resultado Real", f"{g_loc_r} - {g_vis_r}")
+                c3.metric("Puntos Obtenidos", f"+{puntos} pts")
             st.divider()
