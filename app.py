@@ -14,19 +14,52 @@ ZONA_HORARIA = pytz.timezone('America/Santiago')
 # 2. BASE DE DATOS LOCAL (USUARIOS Y PARTIDOS)
 # ==========================================
 USUARIOS = [
-    "Selecciona tu nombre...", 
-    "Joseph Angel Bautista", 
-    "Daniela", 
-    "Yeison", 
-    "Pato", 
+    "Selecciona tu nombre...",
+    "Marco",
+    "David",
+    "Daniela",
+    "Claudio",
+    "Nicol",
+    "Carlos",
+    "Emanuel",
+    "Nayadeth",
+    "Patricio",
+    "Bernarda",
+    "Rodrigo",
+    "Miguel",
+    "Alisson",
+    "Joseph",
+    "Cristian",
+    "Costanzo",
+    "Isidora",
     "Milcka"
 ]
 
 PARTIDOS = [
-    {"id": "P1", "local": "México 🇲🇽", "visita": "🇵🇱 Polonia", "fecha_hora": "2026-06-11 10:00"},
-    {"id": "P2", "local": "Canadá 🇨🇦", "visita": "🇲🇦 Marruecos", "fecha_hora": "2026-06-12 10:00"},
-    {"id": "P3", "local": "USA 🇺🇸", "visita": "🏴󠁧󠁢󠁷󠁬󠁳󠁿 Gales", "fecha_hora": "2026-06-12 20:00"},
-    {"id": "P4", "local": "Argentina 🇦🇷", "visita": "🇫🇷 Francia", "fecha_hora": "2026-06-15 16:00"}
+    {"id": "P1", "local": "México 🇲🇽", "visita": "Sudáfrica 🇿🇦", "fecha_hora": "2026-06-11 15:00"},
+    {"id": "P2", "local": "Corea del Sur 🇰🇷", "visita": "República Checa 🇨🇿", "fecha_hora": "2026-06-11 22:00"},
+    {"id": "P3", "local": "Canadá 🇨🇦", "visita": "Bosnia y Herzegovina 🇧🇦", "fecha_hora": "2026-06-12 15:00"},
+    {"id": "P4", "local": "Estados Unidos 🇺🇸", "visita": "Paraguay 🇵🇾", "fecha_hora": "2026-06-12 21:00"},
+    {"id": "P5", "local": "Catar 🇶🇦", "visita": "Suiza 🇨🇭", "fecha_hora": "2026-06-13 15:00"},
+    {"id": "P6", "local": "Brasil 🇧🇷", "visita": "Marruecos 🇲🇦", "fecha_hora": "2026-06-13 18:00"},
+    {"id": "P7", "local": "Haití 🇭🇹", "visita": "Escocia 🏴󠁧󠁢󠁳󠁣󠁴󠁿", "fecha_hora": "2026-06-13 21:00"},
+    {"id": "P8", "local": "Australia 🇦🇺", "visita": "Turquía 🇹🇷", "fecha_hora": "2026-06-14 00:00"},
+    {"id": "P9", "local": "Alemania 🇩🇪", "visita": "Curazao 🇨🇼", "fecha_hora": "2026-06-14 13:00"},
+    {"id": "P10", "local": "Países Bajos 🇳🇱", "visita": "Japón 🇯🇵", "fecha_hora": "2026-06-14 16:00"},
+    {"id": "P11", "local": "Costa de Marfil 🇨🇮", "visita": "Ecuador 🇪🇨", "fecha_hora": "2026-06-14 19:00"},
+    {"id": "P12", "local": "Suecia 🇸🇪", "visita": "Túnez 🇹🇳", "fecha_hora": "2026-06-14 22:00"},
+    {"id": "P13", "local": "España 🇪🇸", "visita": "Cabo Verde 🇨🇻", "fecha_hora": "2026-06-15 12:00"},
+    {"id": "P14", "local": "Bélgica 🇧🇪", "visita": "Egipto 🇪🇬", "fecha_hora": "2026-06-15 15:00"},
+    {"id": "P15", "local": "Arabia Saudita 🇸🇦", "visita": "Uruguay 🇺🇾", "fecha_hora": "2026-06-15 18:00"},
+    {"id": "P16", "local": "Irán 🇮🇷", "visita": "Nueva Zelanda 🇳🇿", "fecha_hora": "2026-06-15 21:00"},
+    {"id": "P17", "local": "Francia 🇫🇷", "visita": "Senegal 🇸🇳", "fecha_hora": "2026-06-16 15:00"},
+    {"id": "P18", "local": "Irak 🇮🇶", "visita": "Noruega 🇳🇴", "fecha_hora": "2026-06-16 18:00"},
+    {"id": "P19", "local": "Argentina 🇦🇷", "visita": "Argelia 🇩🇿", "fecha_hora": "2026-06-16 21:00"},
+    {"id": "P20", "local": "Austria 🇦🇹", "visita": "Jordania 🇯🇴", "fecha_hora": "2026-06-17 00:00"},
+    {"id": "P21", "local": "Portugal 🇵🇹", "visita": "RD Congo 🇨🇩", "fecha_hora": "2026-06-17 13:00"},
+    {"id": "P22", "local": "Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "visita": "Croacia 🇭🇷", "fecha_hora": "2026-06-17 16:00"},
+    {"id": "P23", "local": "Ghana 🇬🇭", "visita": "Panama 🇵🇦", "fecha_hora": "2026-06-17 19:00"},
+    {"id": "P24", "local": "Uzbekistán 🇺🇿", "visita": "Colombia 🇨🇴", "fecha_hora": "2026-06-17 22:00"}
 ]
 
 COLS_APUESTAS = ["Timestamp", "Usuario", "ID_Partido", "Goles_Local", "Goles_Visita"]
