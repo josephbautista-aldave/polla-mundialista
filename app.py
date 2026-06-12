@@ -67,7 +67,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### 📊 Próximamente")
-    st.warning("📈 **Dashboard de Líderes:** Las gráficas de rendimiento y tabla de posiciones se activarán una vez avanzado el torneo. ¡Asegura tus puntos!")
+    st.warning("📈 **Dashboard de Líderes:** Las gráficas de rendimiento y tabla de posiciones se activarán una vez avanzado el torneo. ¡Suma puntos!")
 
 # ==========================================
 # 2. BASE DE DATOS LOCAL Y AVATARES
@@ -113,7 +113,7 @@ COLS_APUESTAS = ["Timestamp", "Usuario", "ID_Partido", "Equipo_Local", "Equipo_V
 COLS_RESULTADOS = ["ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Goles_Local", "Goles_Visita"]
 
 # ==========================================
-# 3. CAPA DE EXTRACCIÓN Y LIMPIEZA DE DATOS
+# 3. CAPA DE EXTRACCIÓN Y LIMPIEZA DE DATOS (LA MAGIA AQUÍ)
 # ==========================================
 def obtener_datos(hoja, columnas):
     try:
@@ -123,9 +123,19 @@ def obtener_datos(hoja, columnas):
         if df is None or df.empty or str(df.columns[0]).startswith("Unnamed"):
             return pd.DataFrame(columns=columnas)
             
+        # 1. Aspiradora de encabezados (Quita espacios de los títulos de las columnas)
+        df.columns = df.columns.str.strip()
+        
         for col in columnas:
             if col not in df.columns:
                 df[col] = None
+                
+        # 2. Aspiradora de texto interior (Quita espacios de nombres de usuario y IDs de partido)
+        if "Usuario" in df.columns:
+            df["Usuario"] = df["Usuario"].astype(str).str.strip()
+        if "ID_Partido" in df.columns:
+            df["ID_Partido"] = df["ID_Partido"].astype(str).str.strip()
+            
         return df.dropna(how="all")
     except Exception:
         return pd.DataFrame(columns=columnas)
@@ -142,7 +152,7 @@ def guardar_datos_seguro(hoja, df_nuevo):
 
 def parse_goles(valor):
     """
-    Función blindada: Convierte cualquier dato de Excel a un número entero seguro.
+    Convierte cualquier dato de Excel a un número entero seguro.
     Si recibe celdas vacías, letras o errores, devuelve 0 sin romper el código.
     """
     try:
@@ -186,7 +196,8 @@ if st.session_state.usuario_activo is None:
         
         if btn_ingresar:
             if seleccion_cruda is not None:
-                nombre_puro = seleccion_cruda.split(" ", 1)[1]
+                # Extraemos el nombre puro quitando el emoji (strip() garantiza que quede sin espacios)
+                nombre_puro = seleccion_cruda.split(" ", 1)[1].strip()
                 st.session_state.usuario_activo = nombre_puro
                 st.rerun() 
             else:
@@ -210,7 +221,12 @@ with col2:
 df_apuestas = obtener_datos("Apuestas", COLS_APUESTAS)
 df_resultados = obtener_datos("Resultados", COLS_RESULTADOS)
 
-mis_apuestas = df_apuestas[df_apuestas["Usuario"] == usuario_actual] if not df_apuestas.empty else pd.DataFrame(columns=COLS_APUESTAS)
+# Filtramos las apuestas asegurando que los strings coinciden limpiamente
+if not df_apuestas.empty:
+    mis_apuestas = df_apuestas[df_apuestas["Usuario"] == usuario_actual] 
+else:
+    mis_apuestas = pd.DataFrame(columns=COLS_APUESTAS)
+
 ahora_dt = datetime.now(ZONA_HORARIA)
 
 partidos_futuros, partidos_pasados = [], []
@@ -239,10 +255,10 @@ with tab_futuros:
             
             g_loc_previo, g_vis_previo = 0, 0
             if not mis_apuestas.empty:
-                # Usamos .iloc[-1] para asegurarnos de tomar siempre la última actualización que hizo el usuario
+                # Buscamos ignorando cualquier espacio invisible en el ID del partido
                 apuesta_previa = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
                 if not apuesta_previa.empty:
-                    # Limpieza blindada usando nuestra nueva función
+                    # Limpieza blindada
                     g_loc_previo = parse_goles(apuesta_previa["Goles_Local"].iloc[-1])
                     g_vis_previo = parse_goles(apuesta_previa["Goles_Visita"].iloc[-1])
                     st.info(f"✅ Tu jugada guardada: **{g_loc_previo} - {g_vis_previo}**")
@@ -294,24 +310,27 @@ with tab_pasados:
         if not mis_apuestas.empty:
             apuesta = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
             if not apuesta.empty:
-                # Extracción blindada
                 g_loc_a = parse_goles(apuesta["Goles_Local"].iloc[-1])
                 g_vis_a = parse_goles(apuesta["Goles_Visita"].iloc[-1])
                 texto_apuesta = f"{g_loc_a} - {g_vis_a}"
 
         resultado = df_resultados[df_resultados["ID_Partido"] == p["id"]] if not df_resultados.empty else pd.DataFrame()
         
-        # Validación extra: Verificamos que realmente haya datos de goles y no celdas vacías o con "X" en Resultados
-        if resultado.empty or pd.isna(resultado["Goles_Local"].iloc[-1]) or str(resultado["Goles_Local"].iloc[-1]).strip() == "":
+        if resultado.empty:
             st.warning(f"⏳ Tu jugada: **{texto_apuesta}**. Pendiente de validación oficial.")
         else:
-            # Extracción blindada del resultado oficial
-            g_loc_r = parse_goles(resultado["Goles_Local"].iloc[-1])
-            g_vis_r = parse_goles(resultado["Goles_Visita"].iloc[-1])
-            puntos = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
+            # Extracción segura para ver si el resultado ya se llenó o está en blanco
+            g_loc_r_str = str(resultado["Goles_Local"].iloc[-1]).strip()
             
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Tu Jugada", texto_apuesta)
-            c2.metric("Marcador Final", f"{g_loc_r} - {g_vis_r}")
-            c3.metric("Rendimiento", f"+{puntos} Pts")
+            if pd.isna(resultado["Goles_Local"].iloc[-1]) or g_loc_r_str == "" or g_loc_r_str == "nan":
+                st.warning(f"⏳ Tu jugada: **{texto_apuesta}**. Pendiente de validación oficial.")
+            else:
+                g_loc_r = parse_goles(resultado["Goles_Local"].iloc[-1])
+                g_vis_r = parse_goles(resultado["Goles_Visita"].iloc[-1])
+                puntos = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
+                
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Tu Jugada", texto_apuesta)
+                c2.metric("Marcador Final", f"{g_loc_r} - {g_vis_r}")
+                c3.metric("Rendimiento", f"+{puntos} Pts")
         st.write("---")
