@@ -7,78 +7,84 @@ from streamlit_gsheets import GSheetsConnection
 # ==========================================
 # 1. CONFIGURACIÓN BÁSICA Y NUEVO DISEÑO UI
 # ==========================================
-st.set_page_config(page_title="BANBET | Mundial 2026", page_icon="🏆", layout="centered")
+st.set_page_config(page_title="BANBET Mundial 2026", page_icon="🌍", layout="centered")
 ZONA_HORARIA = pytz.timezone('America/Santiago')
 
-# Banner visual nativo (100% compatible con Android/iOS)
+# Banner visual a prueba de temas (Claro/Oscuro) con colores FIFA
 st.markdown("""
     <style>
     .banner-mundial {
-        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #00a94f 100%);
-        padding: 25px;
-        border-radius: 12px;
+        background: linear-gradient(135deg, #8A1538 0%, #004d98 50%, #00a94f 100%);
+        padding: 30px 15px;
+        border-radius: 15px;
         text-align: center;
-        margin-bottom: 25px;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        border: 2px solid #fcd116;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        border: 2px solid #E3A126;
     }
     .titulo-principal {
-        color: #ffffff;
-        font-size: 2.8rem;
-        font-weight: 900;
+        color: #FFFFFF !important;
+        font-size: 3.5rem !important;
+        font-weight: 900 !important;
         margin: 0;
         letter-spacing: 2px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+        text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
     }
     .subtitulo {
-        color: #fcd116;
-        font-size: 1.1rem;
-        font-weight: 600;
+        color: #FCD116 !important;
+        font-size: 1.3rem !important;
+        font-weight: 700 !important;
         margin: 10px 0 0 0;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
     }
     </style>
     <div class="banner-mundial">
-        <h1 class="titulo-principal">🏆 BANBET 26 ⚽</h1>
-        <p class="subtitulo">Torneo Oficial de Pronósticos</p>
+        <h1 class="titulo-principal">🌍 BANBET 2026 🏆</h1>
+        <p class="subtitulo">Pronósticos Oficiales BanGlobal</p>
     </div>
 """, unsafe_allow_html=True)
 
-# Barra lateral con diseño a prueba de fallos de red
+# Barra lateral rediseñada con más color y emojis
 with st.sidebar:
     st.markdown("""
-    <div style="text-align: center; font-size: 4rem; margin-bottom: 10px;">
-        🌍🏆⚽
+    <div style="text-align: center; font-size: 4rem; margin-bottom: 5px;">
+        🏟️⚽🎟️
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("### 📖 ¿Cómo Jugar?")
+    st.markdown("### 📋 Reglas del Juego")
     st.info("""
-    1️⃣ **Identifícate:** Presiona tu credencial en la pantalla inicial.
-    2️⃣ **Pronostica:** Ajusta el marcador y presiona *Guardar*.
-    3️⃣ **El Reloj no Perdona:** Las cartillas se bloquean exactamente a la hora del pitazo inicial.
+    📲 **1. Selecciona tu perfil:** Usa tu avatar.
+    ⏱️ **2. Apuesta a tiempo:** El sistema bloquea las cartillas al pitazo inicial de cada partido.
     """)
     
-    st.markdown("### 🥇 Matriz de Puntos")
+    st.markdown("### 🥇 Sistema de Puntos")
     st.success("""
-    * 🎯 **Pleno (5 pts):** Adivinas el marcador exacto (Ej: Dices 2-1 y termina 2-1).
-    * 📈 **Tendencia (3 pts):** Adivinas quién gana o si empatan, pero fallas los goles.
-    * ❌ **Fallo (0 pts):** Gana el equipo contrario.
+    * 🎯 **PLENO (5 pts):** Adivinar marcador exacto.
+    * 📈 **TENDENCIA (3 pts):** Acertar ganador/empate pero fallar en goles.
+    * ❌ **FALLO (0 pts):** Errar el pronóstico.
     """)
     
     st.markdown("---")
-    st.markdown("### 📊 Próximamente...")
-    st.warning("El módulo de Análisis y KPIs se habilitará una vez que comience a rodar el balón. Prepárate para ver tu rendimiento en los dashboards.")
+    st.markdown("### 📊 Próximamente")
+    st.warning("📈 **Dashboard de Líderes:** Las gráficas de rendimiento y tabla de posiciones se activarán una vez iniciado el torneo. ¡Suma puntos!")
 
 # ==========================================
-# 2. BASE DE DATOS LOCAL
+# 2. BASE DE DATOS LOCAL (CON AVATARES)
 # ==========================================
-USUARIOS = [
-    "Alisson", "Bernarda", "Carlos", "Claudio", "Costanzo", "Cristian",
-    "Daniela", "David", "Emanuel", "Isidora", "Joseph", "Marco",
-    "Miguel", "Milcka", "Nayadeth", "Nicol", "Patricio", "Rodrigo"
-]
+# Diccionario con avatares únicos para cada participante
+PERFILES = {
+    "Alisson": "👩🏽", "Bernarda": "👩🏻", "Carlos": "👨🏻", "Claudio": "👨🏼",
+    "Costanzo": "👨🏽", "Cristian": "👨🏻‍🦱", "Daniela": "👩🏼‍💼", "David": "👨🏻‍💻",
+    "Emanuel": "👨🏽‍🦱", "Isidora": "👩🏻‍🦰", "Joseph": "👨🏻‍🚀", "Marco": "👨🏼‍🏫",
+    "Miguel": "👨🏽‍🔧", "Milcka": "👩🏻‍💻", "Nayadeth": "👩🏽‍🏫", "Nicol": "👩🏻‍⚕️",
+    "Patricio": "👨🏼‍💻", "Rodrigo": "👨🏻‍💼"
+}
+
+# Lista combinada para mostrar en la interfaz (Ej: "👨🏻‍🚀 Joseph")
+OPCIONES_USUARIOS = [f"{icono} {nombre}" for nombre, icono in PERFILES.items()]
 
 PARTIDOS = [
     {"id": "P1", "local": "México 🇲🇽", "visita": "Sudáfrica 🇿🇦", "fecha_hora": "2026-06-11 15:00"},
@@ -135,11 +141,11 @@ def guardar_datos_seguro(hoja, df_nuevo):
         st.cache_data.clear()
         return True
     except Exception as e:
-        st.error(f"❌ Error I/O GSheets ({hoja}): {e}")
+        st.error(f"❌ Error de escritura en GSheets ({hoja}): {e}")
         return False
 
 # ==========================================
-# 4. LÓGICA DE NEGOCIO (5-3-0)
+# 4. LÓGICA DE PUNTOS (5-3-0)
 # ==========================================
 def calcular_puntos(g_loc_apuesta, g_vis_apuesta, g_loc_real, g_vis_real):
     try:
@@ -154,34 +160,42 @@ def calcular_puntos(g_loc_apuesta, g_vis_apuesta, g_loc_real, g_vis_real):
         return 0
 
 # ==========================================
-# 5. GESTOR DE SESIÓN (MATRIZ TÁCTIL)
+# 5. GESTOR DE SESIÓN (LOGIN SIN SALTOS)
 # ==========================================
 if "usuario_activo" not in st.session_state:
     st.session_state.usuario_activo = None
 
 if st.session_state.usuario_activo is None:
-    st.markdown("### 🔐 Credenciales de Acceso")
-    st.caption("Selecciona tu perfil en la matriz para acceder a tus cartillas.")
-    st.write("") # Espaciador
-    
-    # Construcción de la matriz táctil 2x9 para celulares
-    cols = st.columns(2)
-    for idx, usuario in enumerate(USUARIOS):
-        with cols[idx % 2]:
-            if st.button(f"👤 {usuario}", key=f"btn_{usuario}", use_container_width=True):
-                st.session_state.usuario_activo = usuario
-                st.rerun()
-    
-    st.stop() # Bloquea la ejecución del resto de la app hasta que alguien se conecte
+    # Usamos st.form para evitar que la página recargue al seleccionar el radio
+    with st.form("form_login"):
+        st.markdown("### 🔐 Selecciona tu perfil")
+        st.caption("Toca tu nombre y luego presiona 'Ingresar a BANBET'")
+        
+        # El horizontal=True lo hace compacto y usa todo el ancho sin dejar espacio vacío
+        seleccion_cruda = st.radio("Perfiles Oficiales:", OPCIONES_USUARIOS, index=None, horizontal=True, label_visibility="collapsed")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        btn_ingresar = st.form_submit_button("🚀 Ingresar a BANBET", type="primary", use_container_width=True)
+        
+        if btn_ingresar:
+            if seleccion_cruda is not None:
+                # Extraemos el nombre puro quitando el emoji para guardar en la base de datos limpiamente
+                nombre_puro = seleccion_cruda.split(" ", 1)[1]
+                st.session_state.usuario_activo = nombre_puro
+                st.rerun() 
+            else:
+                st.error("⚠️ Debes seleccionar un avatar antes de ingresar.")
+    st.stop() # Bloquea la app hasta que entre
 
 # ==========================================
-# 6. MOTOR DE INTERFAZ (SESIÓN ACTIVA)
+# 6. MOTOR DE INTERFAZ (VISTA CONECTADA)
 # ==========================================
 usuario_actual = st.session_state.usuario_activo
+avatar_actual = PERFILES.get(usuario_actual, "👤")
 
 col1, col2 = st.columns([2, 1])
 with col1:
-    st.success(f"En línea: **{usuario_actual}**")
+    st.success(f"Sesión activa: **{avatar_actual} {usuario_actual}**")
 with col2:
     if st.button("Cerrar Sesión", use_container_width=True):
         st.session_state.usuario_activo = None
@@ -202,18 +216,18 @@ for p in PARTIDOS:
     else:
         partidos_pasados.append(p)
 
-tab_futuros, tab_pasados = st.tabs(["🔮 CARTILLAS ABIERTAS", "📜 HISTORIAL Y RESULTADOS"])
+tab_futuros, tab_pasados = st.tabs(["🔮 CARTILLAS ABIERTAS", "📜 RESULTADOS / HISTORIAL"])
 
 # ------------------------------------------
 # PESTAÑA: APUESTAS ABIERTAS
 # ------------------------------------------
 with tab_futuros:
     if not partidos_futuros:
-        st.success("🎉 ¡Has completado todos tus pronósticos! No hay partidos próximos por ahora.")
+        st.success("🎉 ¡Has completado todos tus pronósticos! Espera los resultados de los partidos.")
         
     for p in partidos_futuros:
         with st.container():
-            st.markdown(f"### {p['local']} vs {p['visita']}")
+            st.markdown(f"### ⚽ {p['local']} vs {p['visita']}")
             fecha_obj = datetime.strptime(p["fecha_hora"], "%Y-%m-%d %H:%M")
             st.caption(f"⏱️ Pitazo inicial: **{fecha_obj.strftime('%d/%m/%Y')}** a las **{fecha_obj.strftime('%H:%M')} hrs**.")
             
@@ -235,8 +249,8 @@ with tab_futuros:
                 with c2:
                     gv = st.number_input(f"Marcador {p['visita'].split(' ')[0]}", min_value=0, max_value=20, step=1, value=g_vis_previo, key=f"vis_{p['id']}_{usuario_actual}")
                 
-                if st.form_submit_button("💾 Guardar y Bloquear", type="primary"):
-                    with st.spinner("Sincronizando con BANBET..."):
+                if st.form_submit_button("💾 Guardar y Asegurar Jugada", type="primary"):
+                    with st.spinner("Enviando al sistema BANBET..."):
                         ahora_str = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
                         
                         nueva_apuesta = pd.DataFrame([{
@@ -291,5 +305,5 @@ with tab_pasados:
             c1, c2, c3 = st.columns(3)
             c1.metric("Tu Jugada", texto_apuesta)
             c2.metric("Marcador Final", f"{g_loc_r} - {g_vis_r}")
-            c3.metric("Rendimiento", f"+{puntos} Puntos")
+            c3.metric(f"Puntos", f"+{puntos}")
         st.write("---")
