@@ -113,7 +113,7 @@ COLS_APUESTAS = ["Timestamp", "Usuario", "ID_Partido", "Equipo_Local", "Equipo_V
 COLS_RESULTADOS = ["ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Goles_Local", "Goles_Visita"]
 
 # ==========================================
-# 3. CAPA DE EXTRACCIÓN Y LIMPIEZA DE DATOS (LA MAGIA AQUÍ)
+# 3. CAPA DE EXTRACCIÓN Y ESCRITURA BLINDADA
 # ==========================================
 def obtener_datos(hoja, columnas):
     try:
@@ -123,38 +123,59 @@ def obtener_datos(hoja, columnas):
         if df is None or df.empty or str(df.columns[0]).startswith("Unnamed"):
             return pd.DataFrame(columns=columnas)
             
-        # 1. Aspiradora de encabezados (Quita espacios de los títulos de las columnas)
         df.columns = df.columns.str.strip()
         
-        for col in columnas:
-            if col not in df.columns:
-                df[col] = None
-                
-        # 2. Aspiradora de texto interior (Quita espacios de nombres de usuario y IDs de partido)
         if "Usuario" in df.columns:
             df["Usuario"] = df["Usuario"].astype(str).str.strip()
         if "ID_Partido" in df.columns:
             df["ID_Partido"] = df["ID_Partido"].astype(str).str.strip()
             
+        df = df.reindex(columns=columnas)
         return df.dropna(how="all")
     except Exception:
         return pd.DataFrame(columns=columnas)
 
-def guardar_datos_seguro(hoja, df_nuevo):
-    conn = st.connection("gsheets", type=GSheetsConnection)
+def guardar_nueva_apuesta(usuario, id_partido, equipo_l, equipo_v, fecha, gl, gv):
+    """
+    LEE LA BASE DE DATOS FRESCA JUSTO ANTES DE GUARDAR.
+    Esto previene que se borren los datos si varios apuestan al mismo tiempo
+    o si modificaste el Excel a mano hace unos minutos.
+    """
     try:
-        conn.update(worksheet=hoja, data=df_nuevo)
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        
+        # 1. Leer la data directamente de GSheets sin usar el caché de Streamlit
+        df_fresco = conn.read(worksheet="Apuestas", ttl=0)
+        
+        if df_fresco is None or df_fresco.empty or str(df_fresco.columns[0]).startswith("Unnamed"):
+            df_fresco = pd.DataFrame(columns=COLS_APUESTAS)
+        else:
+            df_fresco.columns = df_fresco.columns.str.strip()
+            df_fresco = df_fresco.reindex(columns=COLS_APUESTAS).dropna(how="all")
+
+        # 2. Crear la nueva apuesta
+        ahora_str = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
+        nueva_fila = pd.DataFrame([{
+            "Timestamp": ahora_str, "Usuario": usuario, "ID_Partido": id_partido,
+            "Equipo_Local": equipo_l, "Equipo_Visita": equipo_v, "Fecha": fecha,
+            "Goles_Local": gl, "Goles_Visita": gv
+        }])
+
+        # 3. Concatenar y eliminar duplicados manteniendo la última jugada de ESE usuario en ESE partido
+        df_final = pd.concat([df_fresco, nueva_fila], ignore_index=True)
+        df_final["Usuario"] = df_final["Usuario"].astype(str).str.strip()
+        df_final["ID_Partido"] = df_final["ID_Partido"].astype(str).str.strip()
+        df_final = df_final.drop_duplicates(subset=["Usuario", "ID_Partido"], keep='last')
+
+        # 4. Enviar a GSheets
+        conn.update(worksheet="Apuestas", data=df_final)
         st.cache_data.clear()
         return True
     except Exception as e:
-        st.error(f"❌ Error de escritura en GSheets ({hoja}): {e}")
+        st.error(f"❌ Error crítico de concurrencia: {e}")
         return False
 
 def parse_goles(valor):
-    """
-    Convierte cualquier dato de Excel a un número entero seguro.
-    Si recibe celdas vacías, letras o errores, devuelve 0 sin romper el código.
-    """
     try:
         if pd.isna(valor) or str(valor).strip() == "":
             return 0
@@ -196,7 +217,6 @@ if st.session_state.usuario_activo is None:
         
         if btn_ingresar:
             if seleccion_cruda is not None:
-                # Extraemos el nombre puro quitando el emoji (strip() garantiza que quede sin espacios)
                 nombre_puro = seleccion_cruda.split(" ", 1)[1].strip()
                 st.session_state.usuario_activo = nombre_puro
                 st.rerun() 
@@ -221,7 +241,6 @@ with col2:
 df_apuestas = obtener_datos("Apuestas", COLS_APUESTAS)
 df_resultados = obtener_datos("Resultados", COLS_RESULTADOS)
 
-# Filtramos las apuestas asegurando que los strings coinciden limpiamente
 if not df_apuestas.empty:
     mis_apuestas = df_apuestas[df_apuestas["Usuario"] == usuario_actual] 
 else:
@@ -255,10 +274,8 @@ with tab_futuros:
             
             g_loc_previo, g_vis_previo = 0, 0
             if not mis_apuestas.empty:
-                # Buscamos ignorando cualquier espacio invisible en el ID del partido
                 apuesta_previa = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
                 if not apuesta_previa.empty:
-                    # Limpieza blindada
                     g_loc_previo = parse_goles(apuesta_previa["Goles_Local"].iloc[-1])
                     g_vis_previo = parse_goles(apuesta_previa["Goles_Visita"].iloc[-1])
                     st.info(f"✅ Tu jugada guardada: **{g_loc_previo} - {g_vis_previo}**")
@@ -272,24 +289,8 @@ with tab_futuros:
                 
                 if st.form_submit_button("💾 Guardar y Asegurar Jugada", type="primary"):
                     with st.spinner("Enviando al servidor central..."):
-                        ahora_str = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
-                        
-                        nueva_apuesta = pd.DataFrame([{
-                            "Timestamp": ahora_str, 
-                            "Usuario": usuario_actual, 
-                            "ID_Partido": p["id"], 
-                            "Equipo_Local": p["local"],
-                            "Equipo_Visita": p["visita"],
-                            "Fecha": p["fecha_hora"],
-                            "Goles_Local": gl, 
-                            "Goles_Visita": gv
-                        }])
-                        
-                        df_base = df_apuestas if not df_apuestas.empty else pd.DataFrame(columns=COLS_APUESTAS)
-                        df_final = pd.concat([df_base, nueva_apuesta], ignore_index=True)
-                        df_final = df_final.drop_duplicates(subset=["Usuario", "ID_Partido"], keep='last')
-                        
-                        if guardar_datos_seguro("Apuestas", df_final):
+                        # Usamos nuestra nueva función a prueba de sobreescrituras
+                        if guardar_nueva_apuesta(usuario_actual, p["id"], p["local"], p["visita"], p["fecha_hora"], gl, gv):
                             st.success("¡Transacción registrada con éxito!")
                             st.rerun()
             st.write("---")
@@ -319,7 +320,6 @@ with tab_pasados:
         if resultado.empty:
             st.warning(f"⏳ Tu jugada: **{texto_apuesta}**. Pendiente de validación oficial.")
         else:
-            # Extracción segura para ver si el resultado ya se llenó o está en blanco
             g_loc_r_str = str(resultado["Goles_Local"].iloc[-1]).strip()
             
             if pd.isna(resultado["Goles_Local"].iloc[-1]) or g_loc_r_str == "" or g_loc_r_str == "nan":
