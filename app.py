@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import pytz
 from streamlit_gsheets import GSheetsConnection
+import plotly.express as px
 
 # ==========================================
 # 1. CONFIGURACIÓN BÁSICA Y NUEVO DISEÑO UI
@@ -52,37 +53,35 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("### 📋 Reglas del Juego")
+    st.markdown("### 📋 Reglas de Juego")
     st.info("""
-    📲 **1. Selecciona tu perfil:** Usa tu avatar de la matriz.
-    ⏱️ **2. Apuesta a tiempo:** El sistema bloquea las cartillas al pitazo inicial de cada partido.
+    📲 **1. Identidad:** Juega usando tu perfil.
+    ⏱️ **2. Plazos:** Bloqueo automático al inicio de cada partido.
+    ➖ **3. Inactividad:** No participar suma 0 puntos.
     """)
     
     st.markdown("### 🥇 Sistema de Puntos")
     st.success("""
     * 🎯 **PLENO (5 pts):** Adivinar marcador exacto.
-    * 📈 **TENDENCIA (3 pts):** Acertar ganador/empate pero fallar en goles.
+    * ✅ **TENDENCIA (3 pts):** Acertar ganador o empate.
     * ❌ **FALLO (0 pts):** Errar el pronóstico.
     """)
-    
-    st.markdown("---")
-    st.markdown("### 📊 Próximamente")
-    st.warning("📈 **Dashboard de Líderes:** Las gráficas de rendimiento y tabla de posiciones se activarán una vez avanzado el torneo. ¡Suma puntos!")
 
 # ==========================================
 # 2. BASE DE DATOS LOCAL Y AVATARES
 # ==========================================
 PERFILES = {
-    "Alisson": "👩🏽", "Bernarda": "👩🏻", "Carlos": "👨🏻", "Claudio": "👨🏼",
-    "Costanzo": "👨🏽", "Cristian": "👨🏻‍🦱", "Daniela": "👩🏼‍💼", "David": "👨🏻‍💻",
-    "Emanuel": "👨🏽‍🦱", "Isidora": "👩🏻‍🦰", "Joseph": "👨🏻‍🚀", "Marco": "👨🏼‍🏫",
-    "Miguel": "👨🏽‍🔧", "Milcka": "👩🏻‍💻", "Nayadeth": "👩🏽‍🏫", "Nicol": "👩🏻‍⚕️",
-    "Patricio": "👨🏼‍💻", "Rodrigo": "👨🏻‍💼"
+    "Alisson": "💼", "Bernarda": "🧮", "Carlos": "📈", "Claudio": "🔍",
+    "Costanzo": "⚙️", "Cristian": "🔔", "Daniela": "💎", "David": "🚀",
+    "Emanuel": "🛡️", "Isidora": "💻", "Joseph": "⚡", "Marco": "🧭",
+    "Miguel": "🧐", "Milcka": "💸", "Nayadeth": "🪄", "Nicol": "🪙",
+    "Patricio": "🐂", "Rodrigo": "🎯"
 }
 
 OPCIONES_USUARIOS = [f"{icono} {nombre}" for nombre, icono in PERFILES.items()]
 
 PARTIDOS = [
+    # --- JORNADA 1 ---
     {"id": "P1", "local": "México 🇲🇽", "visita": "Sudáfrica 🇿🇦", "fecha_hora": "2026-06-11 15:00"},
     {"id": "P2", "local": "Corea del Sur 🇰🇷", "visita": "República Checa 🇨🇿", "fecha_hora": "2026-06-11 22:00"},
     {"id": "P3", "local": "Canadá 🇨🇦", "visita": "Bosnia y Herzegovina 🇧🇦", "fecha_hora": "2026-06-12 15:00"},
@@ -105,8 +104,58 @@ PARTIDOS = [
     {"id": "P20", "local": "Austria 🇦🇹", "visita": "Jordania 🇯🇴", "fecha_hora": "2026-06-17 00:00"},
     {"id": "P21", "local": "Portugal 🇵🇹", "visita": "RD Congo 🇨🇩", "fecha_hora": "2026-06-17 13:00"},
     {"id": "P22", "local": "Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "visita": "Croacia 🇭🇷", "fecha_hora": "2026-06-17 16:00"},
-    {"id": "P23", "local": "Ghana 🇬🇭", "visita": "Panama 🇵🇦", "fecha_hora": "2026-06-17 19:00"},
-    {"id": "P24", "local": "Uzbekistán 🇺🇿", "visita": "Colombia 🇨🇴", "fecha_hora": "2026-06-17 22:00"}
+    {"id": "P23", "local": "Ghana 🇬🇭", "visita": "Panamá 🇵🇦", "fecha_hora": "2026-06-17 19:00"},
+    {"id": "P24", "local": "Uzbekistán 🇺🇿", "visita": "Colombia 🇨🇴", "fecha_hora": "2026-06-17 22:00"},
+
+    # --- JORNADA 2 ---
+    {"id": "P25", "local": "República Checa 🇨🇿", "visita": "Sudáfrica 🇿🇦", "fecha_hora": "2026-06-18 12:00"},
+    {"id": "P26", "local": "Suiza 🇨🇭", "visita": "Bosnia y Herzegovina 🇧🇦", "fecha_hora": "2026-06-18 15:00"},
+    {"id": "P27", "local": "Canadá 🇨🇦", "visita": "Catar 🇶🇦", "fecha_hora": "2026-06-18 18:00"},
+    {"id": "P28", "local": "México 🇲🇽", "visita": "Corea del Sur 🇰🇷", "fecha_hora": "2026-06-18 21:00"},
+    {"id": "P29", "local": "Estados Unidos 🇺🇸", "visita": "Australia 🇦🇺", "fecha_hora": "2026-06-19 15:00"},
+    {"id": "P30", "local": "Escocia 🏴󠁧󠁢󠁳󠁣󠁴󠁿", "visita": "Marruecos 🇲🇦", "fecha_hora": "2026-06-19 18:00"},
+    {"id": "P31", "local": "Brasil 🇧🇷", "visita": "Haití 🇭🇹", "fecha_hora": "2026-06-19 20:30"},
+    {"id": "P32", "local": "Turquía 🇹🇷", "visita": "Paraguay 🇵🇾", "fecha_hora": "2026-06-19 23:00"},
+    {"id": "P33", "local": "Países Bajos 🇳🇱", "visita": "Suecia 🇸🇪", "fecha_hora": "2026-06-20 13:00"},
+    {"id": "P34", "local": "Alemania 🇩🇪", "visita": "Costa de Marfil 🇨🇮", "fecha_hora": "2026-06-20 16:00"},
+    {"id": "P35", "local": "Ecuador 🇪🇨", "visita": "Curazao 🇨🇼", "fecha_hora": "2026-06-20 20:00"},
+    {"id": "P36", "local": "Japón 🇯🇵", "visita": "Túnez 🇹🇳", "fecha_hora": "2026-06-21 00:00"},
+    {"id": "P37", "local": "España 🇪🇸", "visita": "Arabia Saudita 🇸🇦", "fecha_hora": "2026-06-21 12:00"},
+    {"id": "P38", "local": "Bélgica 🇧🇪", "visita": "Irán 🇮🇷", "fecha_hora": "2026-06-21 15:00"},
+    {"id": "P39", "local": "Uruguay 🇺🇾", "visita": "Cabo Verde 🇨🇻", "fecha_hora": "2026-06-21 18:00"},
+    {"id": "P40", "local": "Nueva Zelanda 🇳🇿", "visita": "Egipto 🇪🇬", "fecha_hora": "2026-06-21 21:00"},
+    {"id": "P41", "local": "Noruega 🇳🇴", "visita": "Senegal 🇸🇳", "fecha_hora": "2026-06-22 20:00"},
+    {"id": "P42", "local": "Francia 🇫🇷", "visita": "Irak 🇮🇶", "fecha_hora": "2026-06-22 23:00"},
+    {"id": "P43", "local": "Jordania 🇯🇴", "visita": "Argelia 🇩🇿", "fecha_hora": "2026-06-23 15:00"},
+    {"id": "P44", "local": "Argentina 🇦🇷", "visita": "Austria 🇦🇹", "fecha_hora": "2026-06-23 18:00"},
+    {"id": "P45", "local": "Portugal 🇵🇹", "visita": "Uzbekistán 🇺🇿", "fecha_hora": "2026-06-23 13:00"},
+    {"id": "P46", "local": "Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "visita": "Ghana 🇬🇭", "fecha_hora": "2026-06-23 16:00"},
+    {"id": "P47", "local": "Panamá 🇵🇦", "visita": "Croacia 🇭🇷", "fecha_hora": "2026-06-23 19:00"},
+    {"id": "P48", "local": "Colombia 🇨🇴", "visita": "RD Congo 🇨🇩", "fecha_hora": "2026-06-23 22:00"},
+
+    # --- JORNADA 3 ---
+    {"id": "P49", "local": "República Checa 🇨🇿", "visita": "México 🇲🇽", "fecha_hora": "2026-06-24 21:00"},
+    {"id": "P50", "local": "Sudáfrica 🇿🇦", "visita": "Corea del Sur 🇰🇷", "fecha_hora": "2026-06-24 21:00"},
+    {"id": "P51", "local": "Escocia 🏴󠁧󠁢󠁳󠁣󠁴󠁿", "visita": "Brasil 🇧🇷", "fecha_hora": "2026-06-24 18:00"},
+    {"id": "P52", "local": "Marruecos 🇲🇦", "visita": "Haití 🇭🇹", "fecha_hora": "2026-06-24 18:00"},
+    {"id": "P53", "local": "Turquía 🇹🇷", "visita": "Estados Unidos 🇺🇸", "fecha_hora": "2026-06-25 22:00"},
+    {"id": "P54", "local": "Paraguay 🇵🇾", "visita": "Australia 🇦🇺", "fecha_hora": "2026-06-25 22:00"},
+    {"id": "P55", "local": "Ecuador 🇪🇨", "visita": "Alemania 🇩🇪", "fecha_hora": "2026-06-25 16:00"},
+    {"id": "P56", "local": "Curazao 🇨🇼", "visita": "Costa de Marfil 🇨🇮", "fecha_hora": "2026-06-25 16:00"},
+    {"id": "P57", "local": "Túnez 🇹🇳", "visita": "Países Bajos 🇳🇱", "fecha_hora": "2026-06-26 15:00"},
+    {"id": "P58", "local": "Suecia 🇸🇪", "visita": "Japón 🇯🇵", "fecha_hora": "2026-06-26 15:00"},
+    {"id": "P59", "local": "Egipto 🇪🇬", "visita": "Irán 🇮🇷", "fecha_hora": "2026-06-26 23:00"},
+    {"id": "P60", "local": "Nueva Zelanda 🇳🇿", "visita": "Bélgica 🇧🇪", "fecha_hora": "2026-06-26 23:00"},
+    {"id": "P61", "local": "Uruguay 🇺🇾", "visita": "España 🇪🇸", "fecha_hora": "2026-06-27 15:00"},
+    {"id": "P62", "local": "Cabo Verde 🇨🇻", "visita": "Arabia Saudita 🇸🇦", "fecha_hora": "2026-06-27 15:00"},
+    {"id": "P63", "local": "Senegal 🇸🇳", "visita": "Irak 🇮🇶", "fecha_hora": "2026-06-27 21:00"},
+    {"id": "P64", "local": "Noruega 🇳🇴", "visita": "Francia 🇫🇷", "fecha_hora": "2026-06-27 21:00"},
+    {"id": "P65", "local": "Argelia 🇩🇿", "visita": "Austria 🇦🇹", "fecha_hora": "2026-06-27 18:00"},
+    {"id": "P66", "local": "Jordania 🇯🇴", "visita": "Argentina 🇦🇷", "fecha_hora": "2026-06-27 18:00"},
+    {"id": "P67", "local": "Colombia 🇨🇴", "visita": "Portugal 🇵🇹", "fecha_hora": "2026-06-27 21:00"},
+    {"id": "P68", "local": "RD Congo 🇨🇩", "visita": "Uzbekistán 🇺🇿", "fecha_hora": "2026-06-27 21:00"},
+    {"id": "P69", "local": "Panamá 🇵🇦", "visita": "Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fecha_hora": "2026-06-27 17:00"},
+    {"id": "P70", "local": "Croacia 🇭🇷", "visita": "Ghana 🇬🇭", "fecha_hora": "2026-06-27 17:00"}
 ]
 
 COLS_APUESTAS = ["Timestamp", "Usuario", "ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Goles_Local", "Goles_Visita"]
@@ -136,15 +185,9 @@ def obtener_datos(hoja, columnas):
         return pd.DataFrame(columns=columnas)
 
 def guardar_nueva_apuesta(usuario, id_partido, equipo_l, equipo_v, fecha, gl, gv):
-    """
-    LEE LA BASE DE DATOS FRESCA JUSTO ANTES DE GUARDAR.
-    Esto previene que se borren los datos si varios apuestan al mismo tiempo
-    o si modificaste el Excel a mano hace unos minutos.
-    """
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
         
-        # 1. Leer la data directamente de GSheets sin usar el caché de Streamlit
         df_fresco = conn.read(worksheet="Apuestas", ttl=0)
         
         if df_fresco is None or df_fresco.empty or str(df_fresco.columns[0]).startswith("Unnamed"):
@@ -153,7 +196,6 @@ def guardar_nueva_apuesta(usuario, id_partido, equipo_l, equipo_v, fecha, gl, gv
             df_fresco.columns = df_fresco.columns.str.strip()
             df_fresco = df_fresco.reindex(columns=COLS_APUESTAS).dropna(how="all")
 
-        # 2. Crear la nueva apuesta
         ahora_str = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
         nueva_fila = pd.DataFrame([{
             "Timestamp": ahora_str, "Usuario": usuario, "ID_Partido": id_partido,
@@ -161,13 +203,11 @@ def guardar_nueva_apuesta(usuario, id_partido, equipo_l, equipo_v, fecha, gl, gv
             "Goles_Local": gl, "Goles_Visita": gv
         }])
 
-        # 3. Concatenar y eliminar duplicados manteniendo la última jugada de ESE usuario en ESE partido
         df_final = pd.concat([df_fresco, nueva_fila], ignore_index=True)
         df_final["Usuario"] = df_final["Usuario"].astype(str).str.strip()
         df_final["ID_Partido"] = df_final["ID_Partido"].astype(str).str.strip()
         df_final = df_final.drop_duplicates(subset=["Usuario", "ID_Partido"], keep='last')
 
-        # 4. Enviar a GSheets
         conn.update(worksheet="Apuestas", data=df_final)
         st.cache_data.clear()
         return True
@@ -184,9 +224,12 @@ def parse_goles(valor):
         return 0
 
 # ==========================================
-# 4. LÓGICA DE PUNTOS (5-3-0)
+# 4. LÓGICA DE PUNTOS
 # ==========================================
 def calcular_puntos(g_loc_apuesta, g_vis_apuesta, g_loc_real, g_vis_real):
+    if g_loc_apuesta is None or g_vis_apuesta is None:
+        return 0
+        
     try:
         gl_a, gv_a = int(g_loc_apuesta), int(g_vis_apuesta)
         gl_r, gv_r = int(g_loc_real), int(g_vis_real)
@@ -200,7 +243,7 @@ def calcular_puntos(g_loc_apuesta, g_vis_apuesta, g_loc_real, g_vis_real):
         return 0
 
 # ==========================================
-# 5. GESTOR DE SESIÓN (LOGIN SIN SALTOS)
+# 5. GESTOR DE SESIÓN
 # ==========================================
 if "usuario_activo" not in st.session_state:
     st.session_state.usuario_activo = None
@@ -257,10 +300,10 @@ for p in PARTIDOS:
     else:
         partidos_pasados.append(p)
 
-tab_futuros, tab_pasados = st.tabs(["🔮 CARTILLAS ABIERTAS", "📜 RESULTADOS Y PUNTOS"])
+tab_futuros, tab_pasados, tab_tribuna, tab_tabla, tab_grafico = st.tabs(["🔮 CARTILLAS", "📜 RESULTADOS", "🏟️ TRIBUNA", "🏆 POSICIONES", "📈 EVOLUCIÓN"])
 
 # ------------------------------------------
-# PESTAÑA: APUESTAS ABIERTAS
+# PESTAÑA 1: APUESTAS ABIERTAS
 # ------------------------------------------
 with tab_futuros:
     if not partidos_futuros:
@@ -289,48 +332,295 @@ with tab_futuros:
                 
                 if st.form_submit_button("💾 Guardar y Asegurar Jugada", type="primary"):
                     with st.spinner("Enviando al servidor central..."):
-                        # Usamos nuestra nueva función a prueba de sobreescrituras
                         if guardar_nueva_apuesta(usuario_actual, p["id"], p["local"], p["visita"], p["fecha_hora"], gl, gv):
                             st.success("¡Transacción registrada con éxito!")
                             st.rerun()
             st.write("---")
 
 # ------------------------------------------
-# PESTAÑA: HISTORIAL Y PUNTOS
+# PESTAÑA 2: HISTORIAL Y PUNTOS 
 # ------------------------------------------
 with tab_pasados:
     if not partidos_pasados:
         st.info("Aún no se ha cerrado ninguna cartilla.")
+    else:
+        datos_procesados = []
+        puntos_acumulados_totales = 0
         
-    for p in partidos_pasados:
-        st.markdown(f"#### 🔒 {p['local']} vs {p['visita']}")
-        
-        texto_apuesta = "Ausente (0-0)"
-        g_loc_a, g_vis_a = 0, 0
-        
-        if not mis_apuestas.empty:
-            apuesta = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
-            if not apuesta.empty:
-                g_loc_a = parse_goles(apuesta["Goles_Local"].iloc[-1])
-                g_vis_a = parse_goles(apuesta["Goles_Visita"].iloc[-1])
-                texto_apuesta = f"{g_loc_a} - {g_vis_a}"
-
-        resultado = df_resultados[df_resultados["ID_Partido"] == p["id"]] if not df_resultados.empty else pd.DataFrame()
-        
-        if resultado.empty:
-            st.warning(f"⏳ Tu jugada: **{texto_apuesta}**. Pendiente de validación oficial.")
-        else:
-            g_loc_r_str = str(resultado["Goles_Local"].iloc[-1]).strip()
+        for p in partidos_pasados:
+            texto_apuesta = "Sin pronóstico"
+            g_loc_a, g_vis_a = None, None 
             
-            if pd.isna(resultado["Goles_Local"].iloc[-1]) or g_loc_r_str == "" or g_loc_r_str == "nan":
-                st.warning(f"⏳ Tu jugada: **{texto_apuesta}**. Pendiente de validación oficial.")
+            if not mis_apuestas.empty:
+                apuesta = mis_apuestas[mis_apuestas["ID_Partido"] == p["id"]]
+                if not apuesta.empty:
+                    g_loc_a = parse_goles(apuesta["Goles_Local"].iloc[-1])
+                    g_vis_a = parse_goles(apuesta["Goles_Visita"].iloc[-1])
+                    texto_apuesta = f"{g_loc_a} - {g_vis_a}"
+
+            resultado = df_resultados[df_resultados["ID_Partido"] == p["id"]] if not df_resultados.empty else pd.DataFrame()
+            
+            puntos = 0
+            validado = False
+            g_loc_r = None
+            g_vis_r = None
+            
+            if not resultado.empty:
+                g_loc_r_str = str(resultado["Goles_Local"].iloc[-1]).strip()
+                if not (pd.isna(resultado["Goles_Local"].iloc[-1]) or g_loc_r_str == "" or g_loc_r_str == "nan"):
+                    g_loc_r = parse_goles(resultado["Goles_Local"].iloc[-1])
+                    g_vis_r = parse_goles(resultado["Goles_Visita"].iloc[-1])
+                    
+                    puntos = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
+                    puntos_acumulados_totales += puntos
+                    validado = True
+            
+            datos_procesados.append({
+                "partido": p,
+                "texto_apuesta": texto_apuesta,
+                "validado": validado,
+                "g_loc_r": g_loc_r,
+                "g_vis_r": g_vis_r,
+                "puntos": puntos,
+                "acumulado": puntos_acumulados_totales
+            })
+            
+        for data in reversed(datos_procesados):
+            p = data["partido"]
+            st.markdown(f"#### 🔒 {p['local']} vs {p['visita']}")
+            
+            if not data["validado"]:
+                st.warning(f"⏳ Tu jugada: **{data['texto_apuesta']}**. Pendiente de validación oficial.")
             else:
-                g_loc_r = parse_goles(resultado["Goles_Local"].iloc[-1])
-                g_vis_r = parse_goles(resultado["Goles_Visita"].iloc[-1])
-                puntos = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Tu Jugada", data["texto_apuesta"])
+                c2.metric("Marcador Final", f"{data['g_loc_r']} - {data['g_vis_r']}")
+                c3.metric("Rendimiento", f"+{data['puntos']} Pts")
+                c4.metric("Acumulado", f"{data['acumulado']} Pts")
+            st.write("---")
+
+# ------------------------------------------
+# PESTAÑA 3: LA TRIBUNA
+# ------------------------------------------
+with tab_tribuna:
+    if not partidos_pasados:
+        st.info("Aún no ha comenzado ningún partido.")
+    else:
+        for p in reversed(partidos_pasados):
+            resultado = df_resultados[df_resultados["ID_Partido"] == p["id"]] if not df_resultados.empty else pd.DataFrame()
+            g_loc_r = None
+            g_vis_r = None
+            resultado_texto = "Pendiente"
+            
+            if not resultado.empty:
+                g_loc_r_str = str(resultado["Goles_Local"].iloc[-1]).strip()
+                if not (pd.isna(resultado["Goles_Local"].iloc[-1]) or g_loc_r_str == "" or g_loc_r_str == "nan"):
+                    g_loc_r = parse_goles(resultado["Goles_Local"].iloc[-1])
+                    g_vis_r = parse_goles(resultado["Goles_Visita"].iloc[-1])
+                    resultado_texto = f"{g_loc_r} - {g_vis_r}"
+
+            with st.expander(f"⚽ {p['local']} vs {p['visita']} | Marcador Final: {resultado_texto}"):
+                apuestas_partido = df_apuestas[df_apuestas["ID_Partido"] == p["id"]] if not df_apuestas.empty else pd.DataFrame()
                 
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Tu Jugada", texto_apuesta)
-                c2.metric("Marcador Final", f"{g_loc_r} - {g_vis_r}")
-                c3.metric("Rendimiento", f"+{puntos} Pts")
-        st.write("---")
+                datos_tribuna = []
+                
+                for nombre, icono in PERFILES.items():
+                    apuesta_usuario = pd.DataFrame()
+                    if not apuestas_partido.empty:
+                        apuesta_usuario = apuestas_partido[apuestas_partido["Usuario"] == nombre]
+                    
+                    if not apuesta_usuario.empty:
+                        gl_a = parse_goles(apuesta_usuario["Goles_Local"].iloc[-1])
+                        gv_a = parse_goles(apuesta_usuario["Goles_Visita"].iloc[-1])
+                        
+                        if g_loc_r is not None and g_vis_r is not None:
+                            pts = calcular_puntos(gl_a, gv_a, g_loc_r, g_vis_r)
+                            if pts == 5:
+                                pronostico = f"{gl_a} - {gv_a} 🎯"
+                            elif pts == 3:
+                                pronostico = f"{gl_a} - {gv_a} ✅"
+                            else:
+                                pronostico = f"{gl_a} - {gv_a}"
+                        else:
+                            pronostico = f"{gl_a} - {gv_a}" 
+                    else:
+                        pronostico = "-"
+                    
+                    datos_tribuna.append({
+                        "Participante": f"{icono} {nombre}",
+                        "Pronóstico": pronostico
+                    })
+                
+                df_tribuna = pd.DataFrame(datos_tribuna)
+                st.dataframe(df_tribuna, use_container_width=True, hide_index=True)
+
+# ------------------------------------------
+# PESTAÑA 4: TABLA DE LÍDERES
+# ------------------------------------------
+with tab_tabla:
+    partidos_con_resultado = []
+    for p in partidos_pasados:
+        resultado = df_resultados[df_resultados["ID_Partido"] == p["id"]] if not df_resultados.empty else pd.DataFrame()
+        if not resultado.empty:
+            g_loc_r_str = str(resultado["Goles_Local"].iloc[-1]).strip()
+            if not (pd.isna(resultado["Goles_Local"].iloc[-1]) or g_loc_r_str == "" or g_loc_r_str == "nan"):
+                partidos_con_resultado.append(p)
+                
+    if not partidos_con_resultado:
+        st.info("Aún no hay resultados para generar la tabla.")
+    else:
+        datos_tabla = []
+        
+        for nombre, icono in PERFILES.items():
+            pts_totales, pj, plenos, tendencias, fallos, ausencias = 0, 0, 0, 0, 0, 0
+            historial_racha = []
+            
+            for p in partidos_con_resultado:
+                res = df_resultados[df_resultados["ID_Partido"] == p["id"]]
+                g_loc_r = parse_goles(res["Goles_Local"].iloc[-1])
+                g_vis_r = parse_goles(res["Goles_Visita"].iloc[-1])
+                
+                ap_usr = df_apuestas[(df_apuestas["ID_Partido"] == p["id"]) & (df_apuestas["Usuario"] == nombre)]
+                
+                if not ap_usr.empty:
+                    g_loc_a = parse_goles(ap_usr["Goles_Local"].iloc[-1])
+                    g_vis_a = parse_goles(ap_usr["Goles_Visita"].iloc[-1])
+                    pj += 1
+                    
+                    pts = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
+                    pts_totales += pts
+                    
+                    if pts == 5:
+                        plenos += 1
+                        historial_racha.append("🎯")
+                    elif pts == 3:
+                        tendencias += 1
+                        historial_racha.append("✅")
+                    else:
+                        fallos += 1
+                        historial_racha.append("❌")
+                else:
+                    ausencias += 1
+                    historial_racha.append("➖")
+            
+            ultimos_3 = "".join(historial_racha[-3:]) if historial_racha else "➖"
+            
+            datos_tabla.append({
+                "Participante": f"{icono} {nombre}",
+                "Pts": pts_totales,
+                "PJ": pj,
+                "🎯 Plenos": plenos,
+                "✅ Tend.": tendencias,
+                "❌ Fallos": fallos,
+                "➖ Aus.": ausencias,
+                "Racha (Últ 3)": ultimos_3
+            })
+            
+        df_tabla = pd.DataFrame(datos_tabla)
+        df_tabla = df_tabla.sort_values(by=["Pts", "🎯 Plenos", "✅ Tend."], ascending=[False, False, False]).reset_index(drop=True)
+        
+        posiciones = []
+        rango_actual = 1
+        for i in range(len(df_tabla)):
+            if i > 0:
+                prev = df_tabla.iloc[i-1]
+                curr = df_tabla.iloc[i]
+                if (curr["Pts"] == prev["Pts"] and 
+                    curr["🎯 Plenos"] == prev["🎯 Plenos"] and 
+                    curr["✅ Tend."] == prev["✅ Tend."]):
+                    pass
+                else:
+                    rango_actual = i + 1
+            
+            if rango_actual == 1:
+                posiciones.append("🥇 1")
+            elif rango_actual == 2:
+                posiciones.append("🥈 2")
+            elif rango_actual == 3:
+                posiciones.append("🥉 3")
+            else:
+                posiciones.append(str(rango_actual))
+                
+        df_tabla.insert(0, "Pos", posiciones)
+        
+        st.dataframe(df_tabla, use_container_width=True, hide_index=True)
+        st.caption("🔍 **Leyenda de Racha:** 🎯 Pleno (5 pts) | ✅ Tendencia (3 pts) | ❌ Fallo (0 pts) | ➖ Ausencia")
+
+# ------------------------------------------
+# PESTAÑA 5: GRÁFICO EVOLUTIVO
+# ------------------------------------------
+with tab_grafico:
+    partidos_con_resultado = []
+    for p in partidos_pasados:
+        resultado = df_resultados[df_resultados["ID_Partido"] == p["id"]] if not df_resultados.empty else pd.DataFrame()
+        if not resultado.empty:
+            g_loc_r_str = str(resultado["Goles_Local"].iloc[-1]).strip()
+            if not (pd.isna(resultado["Goles_Local"].iloc[-1]) or g_loc_r_str == "" or g_loc_r_str == "nan"):
+                partidos_con_resultado.append(p)
+    
+    if not partidos_con_resultado:
+        st.info("Aún no hay resultados oficiales registrados para generar la carrera.")
+    else:
+        acumulados = {nombre: 0 for nombre in PERFILES.keys()}
+        datos_grafico = []
+        nombres_eje_x = []
+        
+        for p in partidos_con_resultado:
+            etiqueta_partido = f"{p['local']} vs {p['visita']}"
+            nombres_eje_x.append(etiqueta_partido)
+            
+            res = df_resultados[df_resultados["ID_Partido"] == p["id"]]
+            g_loc_r = parse_goles(res["Goles_Local"].iloc[-1])
+            g_vis_r = parse_goles(res["Goles_Visita"].iloc[-1])
+            
+            apuestas_p = df_apuestas[df_apuestas["ID_Partido"] == p["id"]] if not df_apuestas.empty else pd.DataFrame()
+            
+            for nombre, icono in PERFILES.items():
+                g_loc_a, g_vis_a = None, None
+                ap_usr = apuestas_p[apuestas_p["Usuario"] == nombre] if not apuestas_p.empty else pd.DataFrame()
+                
+                if not ap_usr.empty:
+                    g_loc_a = parse_goles(ap_usr["Goles_Local"].iloc[-1])
+                    g_vis_a = parse_goles(ap_usr["Goles_Visita"].iloc[-1])
+                
+                puntos_ganados = calcular_puntos(g_loc_a, g_vis_a, g_loc_r, g_vis_r)
+                acumulados[nombre] += puntos_ganados
+                
+                datos_grafico.append({
+                    "Partido": etiqueta_partido,
+                    "Participante": f"{icono} {nombre}",
+                    "Puntos": acumulados[nombre]
+                })
+        
+        df_grafico = pd.DataFrame(datos_grafico)
+        
+        partido_limite = st.select_slider(
+            "Selecciona hasta qué partido viajar:",
+            options=nombres_eje_x,
+            value=nombres_eje_x[-1],
+            label_visibility="collapsed"
+        )
+        
+        df_filtrado = df_grafico[df_grafico["Partido"] == partido_limite].copy()
+        
+        fig = px.bar(
+            df_filtrado, 
+            x="Puntos", 
+            y="Participante", 
+            text="Puntos",
+            color="Participante",
+            orientation='h',
+            height=750 
+        )
+        
+        fig.update_layout(
+            yaxis={'categoryorder':'total ascending'},
+            xaxis_title="Puntos Acumulados",
+            yaxis_title="",
+            showlegend=False, 
+            template="plotly_white",
+            margin=dict(l=0, r=20, t=20, b=0)
+        )
+        
+        fig.update_traces(textposition='outside')
+        st.plotly_chart(fig, use_container_width=True)
