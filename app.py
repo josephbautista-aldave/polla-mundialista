@@ -609,18 +609,22 @@ with tab_grafico:
             y="Participante", 
             text="Puntos",
             color="Participante",
+            color_discrete_map={"⚡ Joseph": "RoyalBlue"}, 
             orientation='h',
             height=750 
         )
         
         fig.update_layout(
-            yaxis={'categoryorder':'total ascending'},
+            yaxis={'categoryorder':'total ascending', 'tickfont': {'size': 14}}, # <-- Achica la letra de los nombres
             xaxis_title="Puntos Acumulados",
             yaxis_title="",
             showlegend=False, 
-            template="plotly_white",
-            margin=dict(l=0, r=20, t=20, b=0)
+            template="presentation",
+            margin=dict(l=0, r=0, t=20, b=0) # <-- Margen derecho en 0 para ganar espacio
         )
         
-        fig.update_traces(textposition='outside')
+        fig.update_traces(
+            textposition='inside', # <-- Mete el número dentro de la barra
+            textfont=dict(size=14, weight='bold') # <-- Achica el tamaño del número
+        )
         st.plotly_chart(fig, use_container_width=True)
