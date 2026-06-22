@@ -53,6 +53,11 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
+    # 🛡️ CAPA 4: BOTÓN DE ENFRIAMIENTO Y REFRESCO
+    if st.button("🔄 Actualizar Datos", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+    
     st.markdown("### 📋 Reglas de Juego")
     st.info("""
     📲 **1. Identidad:** Juega usando tu perfil.
@@ -125,9 +130,9 @@ PARTIDOS = [
     {"id": "P39", "local": "Uruguay 🇺🇾", "visita": "Cabo Verde 🇨🇻", "fecha_hora": "2026-06-21 18:00"},
     {"id": "P40", "local": "Nueva Zelanda 🇳🇿", "visita": "Egipto 🇪🇬", "fecha_hora": "2026-06-21 21:00"},
     {"id": "P41", "local": "Noruega 🇳🇴", "visita": "Senegal 🇸🇳", "fecha_hora": "2026-06-22 20:00"},
-    {"id": "P42", "local": "Francia 🇫🇷", "visita": "Irak 🇮🇶", "fecha_hora": "2026-06-22 23:00"},
-    {"id": "P43", "local": "Jordania 🇯🇴", "visita": "Argelia 🇩🇿", "fecha_hora": "2026-06-23 15:00"},
-    {"id": "P44", "local": "Argentina 🇦🇷", "visita": "Austria 🇦🇹", "fecha_hora": "2026-06-23 18:00"},
+    {"id": "P42", "local": "Francia 🇫🇷", "visita": "Irak 🇮🇶", "fecha_hora": "2026-06-22 17:00"},
+    {"id": "P43", "local": "Jordania 🇯🇴", "visita": "Argelia 🇩🇿", "fecha_hora": "2026-06-22 23:00"},
+    {"id": "P44", "local": "Argentina 🇦🇷", "visita": "Austria 🇦🇹", "fecha_hora": "2026-06-22 13:00"},
     {"id": "P45", "local": "Portugal 🇵🇹", "visita": "Uzbekistán 🇺🇿", "fecha_hora": "2026-06-23 13:00"},
     {"id": "P46", "local": "Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "visita": "Ghana 🇬🇭", "fecha_hora": "2026-06-23 16:00"},
     {"id": "P47", "local": "Panamá 🇵🇦", "visita": "Croacia 🇭🇷", "fecha_hora": "2026-06-23 19:00"},
@@ -142,21 +147,23 @@ PARTIDOS = [
     {"id": "P54", "local": "Paraguay 🇵🇾", "visita": "Australia 🇦🇺", "fecha_hora": "2026-06-25 22:00"},
     {"id": "P55", "local": "Ecuador 🇪🇨", "visita": "Alemania 🇩🇪", "fecha_hora": "2026-06-25 16:00"},
     {"id": "P56", "local": "Curazao 🇨🇼", "visita": "Costa de Marfil 🇨🇮", "fecha_hora": "2026-06-25 16:00"},
-    {"id": "P57", "local": "Túnez 🇹🇳", "visita": "Países Bajos 🇳🇱", "fecha_hora": "2026-06-26 15:00"},
-    {"id": "P58", "local": "Suecia 🇸🇪", "visita": "Japón 🇯🇵", "fecha_hora": "2026-06-26 15:00"},
+    {"id": "P57", "local": "Túnez 🇹🇳", "visita": "Países Bajos 🇳🇱", "fecha_hora": "2026-06-25 19:00"},
+    {"id": "P58", "local": "Suecia 🇸🇪", "visita": "Japón 🇯🇵", "fecha_hora": "2026-06-25 19:00"},
     {"id": "P59", "local": "Egipto 🇪🇬", "visita": "Irán 🇮🇷", "fecha_hora": "2026-06-26 23:00"},
     {"id": "P60", "local": "Nueva Zelanda 🇳🇿", "visita": "Bélgica 🇧🇪", "fecha_hora": "2026-06-26 23:00"},
-    {"id": "P61", "local": "Uruguay 🇺🇾", "visita": "España 🇪🇸", "fecha_hora": "2026-06-27 15:00"},
-    {"id": "P62", "local": "Cabo Verde 🇨🇻", "visita": "Arabia Saudita 🇸🇦", "fecha_hora": "2026-06-27 15:00"},
-    {"id": "P63", "local": "Senegal 🇸🇳", "visita": "Irak 🇮🇶", "fecha_hora": "2026-06-27 21:00"},
-    {"id": "P64", "local": "Noruega 🇳🇴", "visita": "Francia 🇫🇷", "fecha_hora": "2026-06-27 21:00"},
-    {"id": "P65", "local": "Argelia 🇩🇿", "visita": "Austria 🇦🇹", "fecha_hora": "2026-06-27 18:00"},
-    {"id": "P66", "local": "Jordania 🇯🇴", "visita": "Argentina 🇦🇷", "fecha_hora": "2026-06-27 18:00"},
-    {"id": "P67", "local": "Colombia 🇨🇴", "visita": "Portugal 🇵🇹", "fecha_hora": "2026-06-27 21:00"},
-    {"id": "P68", "local": "RD Congo 🇨🇩", "visita": "Uzbekistán 🇺🇿", "fecha_hora": "2026-06-27 21:00"},
+    {"id": "P61", "local": "Uruguay 🇺🇾", "visita": "España 🇪🇸", "fecha_hora": "2026-06-26 20:00"},
+    {"id": "P62", "local": "Cabo Verde 🇨🇻", "visita": "Arabia Saudita 🇸🇦", "fecha_hora": "2026-06-26 20:00"},
+    {"id": "P63", "local": "Senegal 🇸🇳", "visita": "Irak 🇮🇶", "fecha_hora": "2026-06-26 15:00"},
+    {"id": "P64", "local": "Noruega 🇳🇴", "visita": "Francia 🇫🇷", "fecha_hora": "2026-06-26 15:00"},
+    {"id": "P65", "local": "Argelia 🇩🇿", "visita": "Austria 🇦🇹", "fecha_hora": "2026-06-27 22:00"},
+    {"id": "P66", "local": "Jordania 🇯🇴", "visita": "Argentina 🇦🇷", "fecha_hora": "2026-06-27 22:00"},
+    {"id": "P67", "local": "Colombia 🇨🇴", "visita": "Portugal 🇵🇹", "fecha_hora": "2026-06-27 19:30"},
+    {"id": "P68", "local": "RD Congo 🇨🇩", "visita": "Uzbekistán 🇺🇿", "fecha_hora": "2026-06-27 19:30"},
     {"id": "P69", "local": "Panamá 🇵🇦", "visita": "Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fecha_hora": "2026-06-27 17:00"},
     {"id": "P70", "local": "Croacia 🇭🇷", "visita": "Ghana 🇬🇭", "fecha_hora": "2026-06-27 17:00"}
 ]
+
+PARTIDOS = sorted(PARTIDOS, key=lambda x: datetime.strptime(x["fecha_hora"], "%Y-%m-%d %H:%M"))
 
 COLS_APUESTAS = ["Timestamp", "Usuario", "ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Goles_Local", "Goles_Visita"]
 COLS_RESULTADOS = ["ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Goles_Local", "Goles_Visita"]
@@ -167,7 +174,9 @@ COLS_RESULTADOS = ["ID_Partido", "Equipo_Local", "Equipo_Visita", "Fecha", "Gole
 def obtener_datos(hoja, columnas):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
-        df = conn.read(worksheet=hoja, ttl=0)
+        
+        # 🛡️ CAPA 2: MEMORIA CACHÉ (15 Segundos) para no saturar a Google con cada recarga
+        df = conn.read(worksheet=hoja, ttl=15)
         
         if df is None or df.empty or str(df.columns[0]).startswith("Unnamed"):
             return pd.DataFrame(columns=columnas)
@@ -190,11 +199,13 @@ def guardar_nueva_apuesta(usuario, id_partido, equipo_l, equipo_v, fecha, gl, gv
         
         df_fresco = conn.read(worksheet="Apuestas", ttl=0)
         
-        if df_fresco is None or df_fresco.empty or str(df_fresco.columns[0]).startswith("Unnamed"):
-            df_fresco = pd.DataFrame(columns=COLS_APUESTAS)
-        else:
-            df_fresco.columns = df_fresco.columns.str.strip()
-            df_fresco = df_fresco.reindex(columns=COLS_APUESTAS).dropna(how="all")
+        # 🛡️ CAPA 1: CORTAFUEGOS ANTI-BORRADO
+        if df_fresco is None or len(df_fresco) == 0 or str(df_fresco.columns[0]).startswith("Unnamed"):
+            st.error("⚠️ ALERTA DE TRÁFICO: Servidor de Google saturado temporalmente. Para proteger los datos, no se guardó la jugada. Por favor, intenta de nuevo en 15 segundos.")
+            return False
+
+        df_fresco.columns = df_fresco.columns.str.strip()
+        df_fresco = df_fresco.reindex(columns=COLS_APUESTAS).dropna(how="all")
 
         ahora_str = datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S")
         nueva_fila = pd.DataFrame([{
@@ -331,10 +342,17 @@ with tab_futuros:
                     gv = st.number_input(f"Marcador {p['visita'].split(' ')[0]}", min_value=0, max_value=20, step=1, value=g_vis_previo, key=f"vis_{p['id']}_{usuario_actual}")
                 
                 if st.form_submit_button("💾 Guardar y Asegurar Jugada", type="primary"):
-                    with st.spinner("Enviando al servidor central..."):
-                        if guardar_nueva_apuesta(usuario_actual, p["id"], p["local"], p["visita"], p["fecha_hora"], gl, gv):
-                            st.success("¡Transacción registrada con éxito!")
-                            st.rerun()
+                    # 🛡️ CAPA 3: GUARDIA DE TIEMPO ANTI-PESTAÑAS ZOMBIES
+                    ahora_check = datetime.now(ZONA_HORARIA)
+                    fecha_limite = ZONA_HORARIA.localize(datetime.strptime(p["fecha_hora"], "%Y-%m-%d %H:%M"))
+                    
+                    if ahora_check >= fecha_limite:
+                        st.error("❌ ¡Llegaste tarde! El pitazo inicial ya sonó. Refresca la página.")
+                    else:
+                        with st.spinner("Enviando al servidor central..."):
+                            if guardar_nueva_apuesta(usuario_actual, p["id"], p["local"], p["visita"], p["fecha_hora"], gl, gv):
+                                st.success("¡Transacción registrada con éxito!")
+                                st.rerun()
             st.write("---")
 
 # ------------------------------------------
@@ -615,16 +633,16 @@ with tab_grafico:
         )
         
         fig.update_layout(
-            yaxis={'categoryorder':'total ascending', 'tickfont': {'size': 14}}, # <-- Achica la letra de los nombres
+            yaxis={'categoryorder':'total ascending', 'tickfont': {'size': 14}}, 
             xaxis_title="Puntos Acumulados",
             yaxis_title="",
             showlegend=False, 
             template="presentation",
-            margin=dict(l=0, r=0, t=20, b=0) # <-- Margen derecho en 0 para ganar espacio
+            margin=dict(l=0, r=0, t=20, b=0) 
         )
         
         fig.update_traces(
-            textposition='inside', # <-- Mete el número dentro de la barra
-            textfont=dict(size=14, weight='bold') # <-- Achica el tamaño del número
+            textposition='inside', 
+            textfont=dict(size=14, weight='bold') 
         )
         st.plotly_chart(fig, use_container_width=True)
