@@ -181,7 +181,15 @@ PARTIDOS = [
     {"id": "P85", "local": "Suiza 🇨🇭", "visita": "Argelia 🇩🇿", "fecha_hora": "2026-07-02 23:00"},
     {"id": "P86", "local": "Australia 🇦🇺", "visita": "Egipto 🇪🇬", "fecha_hora": "2026-07-03 14:00"},
     {"id": "P87", "local": "Argentina 🇦🇷", "visita": "Cabo Verde 🇨🇻", "fecha_hora": "2026-07-03 18:00"},
-    {"id": "P88", "local": "Colombia 🇨🇴", "visita": "Ghana 🇬🇭", "fecha_hora": "2026-07-03 21:30"}
+    {"id": "P88", "local": "Colombia 🇨🇴", "visita": "Ghana 🇬🇭", "fecha_hora": "2026-07-03 21:30"},
+
+    # --- OCTAVOS ---
+    {"id": "P89", "local": "Canadá 🇨🇦", "visita": "Marruecos 🇲🇦", "fecha_hora": "2026-07-04 13:00"},
+    {"id": "P90", "local": "Paraguay 🇵🇾", "visita": "Francia 🇫🇷", "fecha_hora": "2026-07-04 17:00"},
+    {"id": "P91", "local": "Brasil 🇧🇷", "visita": "Noruega 🇳🇴", "fecha_hora": "2026-07-05 16:00"},
+    {"id": "P92", "local": "México 🇲🇽", "visita": "Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fecha_hora": "2026-07-05 20:00"},
+    {"id": "P93", "local": "Portugal 🇵🇹", "visita": "España 🇪🇸", "fecha_hora": "2026-07-06 15:00"},
+    {"id": "P94", "local": "Estados Unidos 🇺🇸", "visita": "Bélgica 🇧🇪", "fecha_hora": "2026-07-06 20:00"}
 ]
 
 PARTIDOS = sorted(PARTIDOS, key=lambda x: datetime.strptime(x["fecha_hora"], "%Y-%m-%d %H:%M"))
