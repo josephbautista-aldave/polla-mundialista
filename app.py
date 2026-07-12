@@ -199,7 +199,10 @@ PARTIDOS = [
     {"id": "P98", "local": "España 🇪🇸", "visita": "Bélgica 🇧🇪", "fecha_hora": "2026-07-10 15:00"},
     {"id": "P99", "local": "Noruega 🇳🇴", "visita": "Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fecha_hora": "2026-07-11 17:00"},
 
-    {"id": "P100", "local": "Argentina 🇦🇷", "visita": "Suiza 🇨🇭", "fecha_hora": "2026-07-11 21:00"}
+    {"id": "P100", "local": "Argentina 🇦🇷", "visita": "Suiza 🇨🇭", "fecha_hora": "2026-07-11 21:00"},
+
+    # --- SEMIFINALES ---
+    {"id": "P101", "local": "Francia 🇫🇷", "visita": "España 🇪🇸", "fecha_hora": "2026-07-14 15:00"}
 ]
 
 PARTIDOS = sorted(PARTIDOS, key=lambda x: datetime.strptime(x["fecha_hora"], "%Y-%m-%d %H:%M"))
